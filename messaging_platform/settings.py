@@ -176,14 +176,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        # المستخدم الأساسي (المطلوب للاتصال المباشر)
-        'USER': 'postgres', 
-        # كلمة المرور التي زودتنا بها
+        'USER': 'postgres', # يجب أن يكون 'postgres' وليس 'postgres.qmerxfiqocjibugdynyy'
         'PASSWORD': 'trimer.2030', 
-        # Host للاتصال المباشر (db.Project_Ref.supabase.co)
-        'HOST': 'db.qmerxfiqocjibugdynyy.supabase.co', 
-        # المنفذ القياسي للاتصال المباشر
-        'PORT': '5432', 
+        'HOST': 'aws-0-eu-north-1.pooler.supabase.com', # عنوان الـ Pooler
+        'PORT': '6543', # منفذ الـ Pooler
     }
 }
 # إعدادات التخزين المؤقت
