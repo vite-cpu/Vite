@@ -172,16 +172,16 @@ LANGUAGE_CODE = 'ar'
 
 
 
+import dj_database_url # تأكد من أن هذه المكتبة مثبتة (موجودة في الـ requirements.txt)
+
+# رابط قاعدة البيانات الصحيح لـ Pooler (مع كلمة مرورك)
+DATABASE_URL_ENV = "postgresql://postgres:trimer.2030@aws-0-eu-north-1.pooler.supabase.com:6543/postgres"
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'trimer.2030',
-        'HOST': 'aws-0-eu-north-1.pooler.supabase.com',
-        'PORT': '6543',
-    }
+    'default': dj_database_url.parse(
+        os.environ.get("DATABASE_URL", DATABASE_URL_ENV),
+        conn_max_age=600 # يفضل تعيين عمر الاتصال لـ Pooler
+    )
 }
 # إعدادات التخزين المؤقت
 CACHES = {
