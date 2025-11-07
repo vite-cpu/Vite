@@ -178,8 +178,8 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres', # تم تغيير اسم المستخدم ليتطابق مع الاتصال المباشر
         'PASSWORD': 'trimer.2030', # كلمة المرور التي زودتنا بها
-        'HOST': 'db.qmerxfiqocjibugdynyy.supabase.co', # تم تغيير المضيف إلى Direct Connection
-        'PORT': '5432', # تم تغيير المنفذ إلى المنفذ القياسي للاتصال المباشر
+        'HOST': 'aws-0-eu-north-1.pooler.supabase.com', # تم تغيير المضيف إلى Direct Connection
+        'PORT': '6543', # تم تغيير المنفذ إلى المنفذ القياسي للاتصال المباشر
     }
 }
 # إعدادات التخزين المؤقت
