@@ -171,15 +171,16 @@ USE_L10N = True
 LANGUAGE_CODE = 'ar'
 
 
-      
+
+}
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        'USER': 'postgres', # يجب أن يكون 'postgres' وليس 'postgres.qmerxfiqocjibugdynyy'
-        'PASSWORD': 'trimer.2030', 
-        'HOST': 'aws-0-eu-north-1.pooler.supabase.com', # عنوان الـ Pooler
-        'PORT': '6543', # منفذ الـ Pooler
+        'USER': 'postgres.qmerxfiqocjibugdynyy',
+        'PASSWORD': 'trimer.2030',
+        'HOST': 'aws-0-eu-north-1.pooler.supabase.com',
+        'PORT': '6543',
     }
 }
 # إعدادات التخزين المؤقت
