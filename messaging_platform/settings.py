@@ -172,7 +172,7 @@ LANGUAGE_CODE = 'ar'
 
 
 
-}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
