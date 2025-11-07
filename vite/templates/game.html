@@ -1,0 +1,638 @@
+{% extends 'social/base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card mt-4">
+                <div class="card-header text-center">
+                    <h4 style="color: #ffffff;">لعبة الذاكرة</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="game-selection mb-4">
+                        <h5 style="color: #ffffff;">اختر نوع اللعبة:</h5>
+                        <div class="btn-group" role="group">
+                            <button id="classicBtn" class="btn btn-primary active">اللعبة العادية</button>
+                            <button id="cardsBtn" class="btn btn-secondary">لعبة البطاقات</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Classic Game Section -->
+                    <div id="classicGame" class="game-section">
+                        <p class="text-muted">اختبر ذاكرتك بمطابقة الأزواج!</p>
+                        
+                        <div class="game-container mb-4">
+                            <div class="game-board" id="classicBoard"></div>
+                        </div>
+                        
+                        <div class="game-info">
+                            <p style="color: #ffffff;">الوقت: <span id="classicTime">00:00</span></p>
+                            <p style="color: #ffffff;">المحاولات: <span id="classicMoves">0</span></p>
+                            <button id="classicRestartBtn" class="btn btn-primary mt-3">إعادة البدء</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Cards Game Section -->
+                    <div id="cardsGame" class="game-section" style="display: none;">
+                        <h5 style="color: #ffffff;">لعبة بطاقات الذاكرة</h5>
+                        
+                        <div class="game-info-cards mb-3">
+                            <div class="info-box">
+                                <div>الوقت</div>
+                                <div id="cardsTimer">00:00</div>
+                            </div>
+                            <div class="info-box">
+                                <div>المحاولات</div>
+                                <div id="cardsMoves">0</div>
+                            </div>
+                            <div class="info-box">
+                                <div>الأزواج</div>
+                                <div id="cardsPairs">0 / 8</div>
+                            </div>
+                        </div>
+                        
+                        <div class="cards-container mb-4">
+                            <div class="cards-board" id="cardsBoard"></div>
+                        </div>
+                        
+                        <div class="difficulty mb-3">
+                            <button id="easyBtn" class="btn btn-sm btn-outline-primary">سهل (3x4)</button>
+                            <button id="mediumBtn" class="btn btn-sm btn-outline-primary active">متوسط (4x4)</button>
+                            <button id="hardBtn" class="btn btn-sm btn-outline-primary">صعب (4x6)</button>
+                        </div>
+                        
+                        <div class="controls">
+                            <button id="cardsRestartBtn" class="btn btn-primary">إعادة البدء</button>
+                            <button id="hintBtn" class="btn btn-secondary">مساعدة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* General Styles */
+    .game-selection {
+        margin-bottom: 20px;
+    }
+    
+    .game-section {
+        transition: all 0.3s ease;
+    }
+    
+    .btn-group .btn {
+        margin: 0 5px;
+    }
+    
+    /* Classic Game Styles */
+    .game-container {
+        display: flex;
+        justify-content: center;
+    }
+    
+    .game-board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        max-width: 300px;
+    }
+    
+    .card-game {
+        width: 60px;
+        height: 60px;
+        background-color: var(--bg-darker);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid var(--border);
+    }
+    
+    .card-game.flipped {
+        background-color: var(--primary);
+        color: var(--bg-light);
+        transform: rotateY(180deg);
+    }
+    
+    .card-game.matched {
+        background-color: #198754;
+        cursor: default;
+    }
+    
+    .game-info {
+        margin-top: 20px;
+    }
+    
+    /* Cards Game Styles */
+    .game-info-cards {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto 15px;
+        background: #1e1e1e;
+        padding: 8px;
+        border-radius: 8px;
+    }
+    
+    .info-box {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #ffffff;
+    }
+    
+    .cards-container {
+        display: flex;
+        justify-content: center;
+    }
+    
+    .cards-board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        max-width: 400px;
+        perspective: 1000px;
+    }
+    
+    .memory-card {
+        width: 80px;
+        height: 100px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: all 0.5s ease;
+        cursor: pointer;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+    }
+    
+    .card-front {
+        background: #2d2d2d;
+        border: 1px solid #444;
+        transform: rotateY(180deg);
+        color: #ffffff;
+    }
+    
+    .card-back {
+        background: linear-gradient(45deg, #3a3a3a, #2a2a2a);
+        color: #e0e0e0;
+    }
+    
+    .memory-card.flipped {
+        transform: rotateY(180deg);
+    }
+    
+    .memory-card.matched {
+        transform: rotateY(180deg);
+        box-shadow: 0 0 8px #4CAF50;
+        cursor: default;
+    }
+    
+    .memory-card.matched .card-front {
+        background: #2e7d32;
+        border-color: #4CAF50;
+    }
+    
+    .difficulty {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+    
+    /* Responsive Styles */
+    @media (max-width: 576px) {
+        .game-board {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        .card-game {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+        }
+        
+        .cards-board {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        
+        .memory-card {
+            width: 70px;
+            height: 90px;
+            font-size: 20px;
+        }
+        
+        .difficulty button {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Game Selection
+        const classicBtn = document.getElementById('classicBtn');
+        const cardsBtn = document.getElementById('cardsBtn');
+        const classicGame = document.getElementById('classicGame');
+        const cardsGame = document.getElementById('cardsGame');
+        
+        classicBtn.addEventListener('click', function() {
+            classicBtn.classList.remove('btn-secondary');
+            classicBtn.classList.add('btn-primary');
+            cardsBtn.classList.remove('btn-primary');
+            cardsBtn.classList.add('btn-secondary');
+            classicGame.style.display = 'block';
+            cardsGame.style.display = 'none';
+        });
+        
+        cardsBtn.addEventListener('click', function() {
+            cardsBtn.classList.remove('btn-secondary');
+            cardsBtn.classList.add('btn-primary');
+            classicBtn.classList.remove('btn-primary');
+            classicBtn.classList.add('btn-secondary');
+            cardsGame.style.display = 'block';
+            classicGame.style.display = 'none';
+        });
+        
+        // Classic Game Logic
+        const classicBoard = document.getElementById('classicBoard');
+        const classicTimeDisplay = document.getElementById('classicTime');
+        const classicMovesDisplay = document.getElementById('classicMoves');
+        const classicRestartBtn = document.getElementById('classicRestartBtn');
+        
+        const classicEmojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+        let classicCards = [...classicEmojis, ...classicEmojis];
+        let classicFlippedCards = [];
+        let classicMatchedCards = [];
+        let classicMoves = 0;
+        let classicSeconds = 0;
+        let classicTimer;
+        let classicGameStarted = false;
+        
+        function classicShuffleCards() {
+            for (let i = classicCards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [classicCards[i], classicCards[j]] = [classicCards[j], classicCards[i]];
+            }
+        }
+        
+        function classicCreateBoard() {
+            classicBoard.innerHTML = '';
+            classicShuffleCards();
+            
+            classicCards.forEach((emoji, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card-game');
+                card.dataset.index = index;
+                card.textContent = emoji;
+                card.addEventListener('click', classicFlipCard);
+                classicBoard.appendChild(card);
+            });
+        }
+        
+        function classicFlipCard() {
+            if (!classicGameStarted) {
+                classicStartTimer();
+                classicGameStarted = true;
+            }
+            
+            const selectedCard = this;
+            
+            if (classicFlippedCards.includes(selectedCard) || selectedCard.classList.contains('matched')) {
+                return;
+            }
+            
+            selectedCard.classList.add('flipped');
+            classicFlippedCards.push(selectedCard);
+            
+            if (classicFlippedCards.length === 2) {
+                classicMoves++;
+                classicMovesDisplay.textContent = classicMoves;
+                
+                const [firstCard, secondCard] = classicFlippedCards;
+                
+                if (firstCard.textContent === secondCard.textContent) {
+                    firstCard.classList.add('matched');
+                    secondCard.classList.add('matched');
+                    classicMatchedCards.push(firstCard, secondCard);
+                    classicFlippedCards = [];
+                    
+                    if (classicMatchedCards.length === classicCards.length) {
+                        clearInterval(classicTimer);
+                        setTimeout(() => {
+                            alert(`مبروك! لقد فزت بـ ${classicMoves} محاولة وفي ${classicFormatTime(classicSeconds)}!`);
+                        }, 500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        firstCard.classList.remove('flipped');
+                        secondCard.classList.remove('flipped');
+                        classicFlippedCards = [];
+                    }, 1000);
+                }
+            }
+        }
+        
+        function classicStartTimer() {
+            clearInterval(classicTimer);
+            classicSeconds = 0;
+            classicUpdateTimer();
+            classicTimer = setInterval(() => {
+                classicSeconds++;
+                classicUpdateTimer();
+            }, 1000);
+        }
+        
+        function classicUpdateTimer() {
+            const minutes = Math.floor(classicSeconds / 60);
+            const remainingSeconds = classicSeconds % 60;
+            classicTimeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        function classicFormatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes} دقيقة و ${seconds} ثانية`;
+        }
+        
+        function classicRestartGame() {
+            classicFlippedCards = [];
+            classicMatchedCards = [];
+            classicMoves = 0;
+            classicGameStarted = false;
+            classicMovesDisplay.textContent = classicMoves;
+            clearInterval(classicTimer);
+            classicTimeDisplay.textContent = '00:00';
+            classicCreateBoard();
+        }
+        
+        classicRestartBtn.addEventListener('click', classicRestartGame);
+        classicCreateBoard();
+        
+        // Cards Game Logic
+        const cardsBoard = document.getElementById('cardsBoard');
+        const cardsTimerDisplay = document.getElementById('cardsTimer');
+        const cardsMovesDisplay = document.getElementById('cardsMoves');
+        const cardsPairsDisplay = document.getElementById('cardsPairs');
+        const cardsRestartBtn = document.getElementById('cardsRestartBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const easyBtn = document.getElementById('easyBtn');
+        const mediumBtn = document.getElementById('mediumBtn');
+        const hardBtn = document.getElementById('hardBtn');
+        
+        const symbols = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', 
+                        '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦'];
+        
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let seconds = 0;
+        let timer;
+        let gameStarted = false;
+        let totalPairs = 8;
+        let boardSize = 'medium';
+        let hintAvailable = true;
+        
+        function initCardsGame() {
+            switch(boardSize) {
+                case 'easy':
+                    totalPairs = 6;
+                    cardsBoard.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                    break;
+                case 'medium':
+                    totalPairs = 8;
+                    cardsBoard.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                    break;
+                case 'hard':
+                    totalPairs = 12;
+                    cardsBoard.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                    break;
+            }
+            
+            cardsBoard.innerHTML = '';
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            seconds = 0;
+            gameStarted = false;
+            hintAvailable = true;
+            
+            cardsMovesDisplay.textContent = moves;
+            cardsPairsDisplay.textContent = `0 / ${totalPairs}`;
+            cardsTimerDisplay.textContent = '00:00';
+            
+            createCards();
+            showCardsInitially();
+        }
+        
+        function showCardsInitially() {
+            cards.forEach(card => {
+                card.classList.add('flipped');
+            });
+            
+            setTimeout(() => {
+                cards.forEach(card => {
+                    card.classList.remove('flipped');
+                });
+            }, 3000);
+        }
+        
+        function createCards() {
+            cards = [];
+            const selectedSymbols = symbols.slice(0, totalPairs);
+            const cardSymbols = [...selectedSymbols, ...selectedSymbols];
+            
+            for (let i = cardSymbols.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardSymbols[i], cardSymbols[j]] = [cardSymbols[j], cardSymbols[i]];
+            }
+            
+            cardSymbols.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                
+                const cardFront = document.createElement('div');
+                cardFront.className = 'card-face card-front';
+                cardFront.textContent = symbol;
+                
+                const cardBack = document.createElement('div');
+                cardBack.className = 'card-face card-back';
+                
+                card.appendChild(cardFront);
+                card.appendChild(cardBack);
+                card.addEventListener('click', flipMemoryCard);
+                
+                cardsBoard.appendChild(card);
+                cards.push(card);
+            });
+        }
+        
+        function flipMemoryCard() {
+            if (!gameStarted) {
+                startCardsTimer();
+                gameStarted = true;
+            }
+            
+            const selectedCard = this;
+            
+            if (flippedCards.includes(selectedCard) || selectedCard.classList.contains('matched')) {
+                return;
+            }
+            
+            if (flippedCards.length >= 2) {
+                return;
+            }
+            
+            selectedCard.classList.add('flipped');
+            flippedCards.push(selectedCard);
+            
+            if (flippedCards.length === 2) {
+                moves++;
+                cardsMovesDisplay.textContent = moves;
+                
+                const [firstCard, secondCard] = flippedCards;
+                
+                if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
+                    firstCard.classList.add('matched');
+                    secondCard.classList.add('matched');
+                    matchedPairs++;
+                    cardsPairsDisplay.textContent = `${matchedPairs} / ${totalPairs}`;
+                    flippedCards = [];
+                    
+                    if (matchedPairs === totalPairs) {
+                        clearInterval(timer);
+                        setTimeout(() => {
+                            alert(`مبروك! لقد فزت بـ ${moves} محاولة وفي ${formatCardsTime(seconds)}!`);
+                        }, 500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        firstCard.classList.remove('flipped');
+                        secondCard.classList.remove('flipped');
+                        flippedCards = [];
+                    }, 1000);
+                }
+            }
+        }
+        
+        function startCardsTimer() {
+            clearInterval(timer);
+            seconds = 0;
+            updateCardsTimer();
+            timer = setInterval(() => {
+                seconds++;
+                updateCardsTimer();
+            }, 1000);
+        }
+        
+        function updateCardsTimer() {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            cardsTimerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        function formatCardsTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes} دقيقة و ${seconds} ثانية`;
+        }
+        
+        function giveHint() {
+            if (!hintAvailable || flippedCards.length > 0 || matchedPairs === totalPairs) return;
+            
+            hintAvailable = false;
+            hintBtn.disabled = true;
+            
+            const unflippedCards = Array.from(cards).filter(card => 
+                !card.classList.contains('matched') && 
+                !card.classList.contains('flipped')
+            );
+            
+            if (unflippedCards.length < 2) return;
+            
+            const cardMap = {};
+            let hintCards = [];
+            
+            for (const card of unflippedCards) {
+                const symbol = card.dataset.symbol;
+                if (cardMap[symbol]) {
+                    hintCards = [cardMap[symbol], card];
+                    break;
+                }
+                cardMap[symbol] = card;
+            }
+            
+            if (hintCards.length === 2) {
+                hintCards.forEach(card => {
+                    card.style.boxShadow = '0 0 10px yellow';
+                });
+                
+                setTimeout(() => {
+                    hintCards.forEach(card => {
+                        card.style.boxShadow = '';
+                    });
+                    hintBtn.disabled = false;
+                }, 1500);
+            } else {
+                hintBtn.disabled = false;
+            }
+        }
+        
+        // Cards Game Event Listeners
+        cardsRestartBtn.addEventListener('click', initCardsGame);
+        hintBtn.addEventListener('click', giveHint);
+        easyBtn.addEventListener('click', () => {
+            boardSize = 'easy';
+            easyBtn.classList.add('active');
+            mediumBtn.classList.remove('active');
+            hardBtn.classList.remove('active');
+            initCardsGame();
+        });
+        mediumBtn.addEventListener('click', () => {
+            boardSize = 'medium';
+            mediumBtn.classList.add('active');
+            easyBtn.classList.remove('active');
+            hardBtn.classList.remove('active');
+            initCardsGame();
+        });
+        hardBtn.addEventListener('click', () => {
+            boardSize = 'hard';
+            hardBtn.classList.add('active');
+            easyBtn.classList.remove('active');
+            mediumBtn.classList.remove('active');
+            initCardsGame();
+        });
+        
+        // Initialize Cards Game
+        initCardsGame();
+    });
+</script>
+{% endblock %}

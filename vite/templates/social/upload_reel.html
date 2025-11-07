@@ -1,0 +1,240 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+    /* Professional Form Styling */
+    .upload-card {
+        background-color: var(--bg-light);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        overflow: hidden; /* To contain the loading overlay */
+        position: relative;
+    }
+
+    .upload-card .card-header {
+        background: linear-gradient(135deg, var(--bg-darker), var(--bg-light));
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem;
+    }
+    
+    .upload-card .card-header h4 {
+        font-weight: 600;
+        color: var(--primary);
+    }
+    
+    .upload-card .card-body {
+        padding: 2rem;
+    }
+
+    /* Custom File Upload Area */
+    .file-upload-container {
+        border: 2px dashed var(--border);
+        border-radius: 0.75rem;
+        padding: 2rem;
+        cursor: pointer;
+        transition: background-color 0.3s, border-color 0.3s;
+        background-color: var(--bg-darker);
+    }
+    
+    .file-upload-container:hover {
+        background-color: #333; /* Slightly lighter on hover */
+        border-color: var(--primary);
+    }
+
+    .file-upload-container i {
+        color: var(--primary-light);
+        transition: transform 0.3s;
+    }
+    
+    .file-upload-container:hover i {
+        transform: scale(1.1);
+    }
+
+    .file-upload-container p {
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .file-name {
+        color: var(--primary);
+        font-size: 0.9em;
+        font-weight: bold;
+    }
+
+    /* Hide the default file input */
+    #id_video {
+        display: none;
+    }
+
+    /* Video Preview Styling */
+    #video-preview-container {
+        display: none;
+    }
+    
+    #video-preview {
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+        max-height: 400px;
+    }
+    
+    /* Loading Overlay */
+    #loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none; /* Hidden by default */
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        z-index: 10;
+        border-radius: 1rem;
+        color: white;
+    }
+    
+    #loading-overlay .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    #loading-overlay p {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card upload-card">
+                <div id="loading-overlay">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>جاري رفع الفيديو...</p>
+                </div>
+
+                <div class="card-header">
+                    <h4 class="text-center mb-0">إنشاء ريل جديد</h4>
+                </div>
+                <div class="card-body">
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>حدث خطأ!</strong> يرجى تصحيح الأخطاء.
+                        </div>
+                    {% endif %}
+                    <form method="post" enctype="multipart/form-data" id="reel-form">
+                        {% csrf_token %}
+
+                        <div class="mb-4" id="upload-area">
+                            <label for="id_video" class="form-label fw-bold">{{ form.video.label }}</label>
+                            <div class="file-upload-container text-center" id="file-upload-container">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                <p>اسحب الفيديو إلى هنا أو انقر للاختيار</p>
+                                <span class="file-name" id="file-name">لم يتم اختيار أي ملف</span>
+                            </div>
+                            {{ form.video }}
+                            {% if form.video.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.video.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4" id="video-preview-container">
+                             <label class="form-label fw-bold">معاينة الفيديو:</label>
+                             <video id="video-preview" width="100%" controls></video>
+                             <button type="button" id="remove-video-btn" class="btn btn-sm btn-outline-danger mt-2">
+                                <i class="fas fa-trash me-1"></i> إزالة الفيديو
+                             </button>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.caption.id_for_label }}" class="form-label fw-bold">{{ form.caption.label }}</label>
+                            {{ form.caption }}
+                             {% if form.caption.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.caption.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                                <i class="fas fa-paper-plane me-2"></i>نشر الريل
+                            </button>
+                            <a href="{% url 'reels_feed' %}" class="btn btn-outline-secondary">إلغاء</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reelForm = document.getElementById('reel-form');
+    const videoInput = document.getElementById('id_video');
+    const uploadArea = document.getElementById('upload-area');
+    const fileUploadContainer = document.getElementById('file-upload-container');
+    const fileNameSpan = document.getElementById('file-name');
+    
+    const previewContainer = document.getElementById('video-preview-container');
+    const videoPreview = document.getElementById('video-preview');
+    const removeVideoBtn = document.getElementById('remove-video-btn');
+
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // Trigger file input click when the custom container is clicked
+    fileUploadContainer.addEventListener('click', () => {
+        videoInput.click();
+    });
+
+    // Handle file selection
+    videoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            fileNameSpan.textContent = file.name;
+
+            // Show video preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                videoPreview.src = e.target.result;
+                uploadArea.style.display = 'none';
+                previewContainer.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Handle video removal
+    removeVideoBtn.addEventListener('click', () => {
+        videoInput.value = ''; // Clear the file input
+        videoPreview.src = '';
+        fileNameSpan.textContent = 'لم يتم اختيار أي ملف';
+        previewContainer.style.display = 'none';
+        uploadArea.style.display = 'block';
+    });
+
+    // Handle form submission and show loader
+    reelForm.addEventListener('submit', function(event) {
+        // Check if a video is selected
+        if (!videoInput.files || videoInput.files.length === 0) {
+            alert('يرجى اختيار ملف فيديو قبل النشر.');
+            event.preventDefault(); // Stop form submission
+            return;
+        }
+
+        // Show the loading overlay
+        loadingOverlay.style.display = 'flex';
+        submitBtn.disabled = true; // Disable button to prevent multiple submissions
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري النشر...';
+    });
+});
+</script>
+{% endblock %}

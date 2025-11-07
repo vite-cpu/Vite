@@ -1,0 +1,63 @@
+{% load static %}
+{% block content %}
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="screen-orientation" content="portrait-primary">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+
+</head>
+
+<div class="chat-list-container" dir="rtl">
+    <div class="chat-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <button class="back-button" onclick="window.location.href='/home/'">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="chat-title">المحادثات</h1>
+        <div style="width: 48px;"></div>
+    </div>
+    
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="ابحث عن محادثة..." onkeyup="searchChats(this.value)">
+    </div> 
+    
+    <ul class="user-list" id="chatList">
+        {% for user_info in all_users %}
+            <li class="user-item {% if user_info.is_new %}new-message{% endif %}" onclick="location.href='{% url 'chat' user_info.user.username %}'">
+                <div class="avatar-container">
+                    <img src="{{ user_info.user.profile_picture.url }}" alt="{{ user_info.user.username }}" class="user-avatar"
+                         onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';">
+                    {% if user_info.user.is_online %}
+                        <span class="online-indicator"></span>
+                    {% endif %}
+                </div>
+                 <div class="user-info">
+                    <div class="user-name">
+                        {% if user_info.is_new %}<span class="new-message-badge">جديد</span>{% endif %}
+                        {{ user_info.user.username }}
+                        {% if user_info.user.is_verified %}
+                            <span class="verified-badge" title="حساب موثوق (لديه أكثر من 10 متابعين)">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="last-message">{{ user_info.last_message }}</div>
+                </div>
+                <div class="message-time">
+                    {% if user_info.last_time %}
+                        {{ user_info.last_time|date:"H:i" }}
+                    {% endif %}
+                </div>
+            </li>
+        {% empty %}
+            <div class="no-chats">
+                <p>لا توجد محادثات حتى الآن</p>
+            </div>
+        {% endfor %}
+    </ul>
+    
+   <script src="{% static 'script.js' %}"></script>
+
+{% endblock %}

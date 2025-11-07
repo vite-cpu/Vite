@@ -1,0 +1,389 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% block content %}
+<link rel="icon" type="image/jpg" href="https://upload.wikimedia.org/wikipedia/commons/4/46/1000084215-removebg-preview.png">
+<style>
+    /* --- تعريف متغيرات التصميم الزجاجي --- */
+    :root {
+        --panel-bg: rgba(28, 28, 28, 0.7); /* خلفية شفافة للعناصر */
+        --panel-border: rgba(255, 255, 255, 0.1); /* حدود شفافة */
+        --blur-effect: blur(12px);
+    }
+
+    .dark-home {
+        /* تم إزالة الخلفية من هنا لتعتمد على خلفية body من base.html */
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding-top: 20px;
+    }
+
+    /* --- تطبيق التصميم الزجاجي على البطاقات الرئيسية --- */
+    .dark-card,
+    .quran-athkar-panel,
+    .reels-section-container,
+    .stories-panel {
+        background-color: var(--panel-bg) !important;
+        backdrop-filter: var(--blur-effect);
+        -webkit-backdrop-filter: var(--blur-effect);
+        border: 1px solid var(--panel-border) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border-radius: 12px; /* حواف أكثر دائرية */
+        margin-bottom: 25px;
+    }
+    
+    .dark-card:hover,
+    .quran-athkar-panel:hover,
+    .reels-section-container:hover,
+    .stories-panel:hover {
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+    }
+    
+    .floating-chat-button {
+        position: fixed;
+        bottom: 30px;
+        left: 30px;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background-color: #4a6bff;
+        border: none;
+    }
+    .floating-chat-button:hover {
+        background-color: #3a5bef;
+        transform: scale(1.05);
+    }
+    .badge-danger {
+        background-color: #ff4757;
+    }
+
+    /* Quran/Athkar Panel Styles */
+    .quran-athkar-panel {
+        padding: 25px;
+        text-align: center;
+        font-family: 'Amiri', serif;
+    }
+    .quran-athkar-panel h3 {
+        color: #4a6bff;
+        margin-bottom: 20px;
+        font-size: 1.8em;
+    }
+    .quran-athkar-content {
+        font-size: 1.5em;
+        color: #e0e0e0;
+        min-height: 100px;
+        line-height: 1.8;
+        opacity: 0;
+        transition: opacity 1.5s ease-in-out;
+        direction: rtl;
+    }
+    .quran-athkar-content.visible {
+        opacity: 1;
+    }
+
+    /* Reels Section Styles */
+    .reels-section-container {
+        padding: 20px;
+        margin-top: 25px;
+    }
+    .reels-section-container h3 {
+        color: #e0e0e0;
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-align: right;
+    }
+    .reels-horizontal-scroll {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        gap: 15px;
+    }
+    .reel-card-link {
+        text-decoration: none;
+    }
+    .reel-card {
+        flex: 0 0 150px;
+        width: 150px;
+        height: 250px;
+        background-color: rgba(0,0,0,0.3); /* خلفية شفافة قليلاً للبطاقة نفسها */
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .reel-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+    .reel-thumbnail, .reel-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .reel-thumbnail { z-index: 1; transition: opacity 0.3s ease; }
+    .reel-video { z-index: 2; display: none; }
+    .reel-card:hover .reel-thumbnail, .reel-card:active .reel-thumbnail { opacity: 0; }
+    .reel-card:hover .reel-video, .reel-card:active .reel-video { display: block; }
+    .reel-card-overlay {
+        position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; color: white;
+        font-size: 0.8rem; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7); z-index: 3;
+    }
+    .reel-card-user-img {
+        width: 24px; height: 24px; border-radius: 50%; margin-left: 8px;
+        object-fit: cover; border: 1px solid rgba(255,255,255,0.5);
+    }
+    .reel-views-overlay {
+        position: absolute; top: 8px; left: 8px; z-index: 3;
+        background-color: rgba(0, 0, 0, 0.5); color: white; padding: 3px 8px;
+        border-radius: 10px; font-size: 0.75rem; display: flex; align-items: center;
+    }
+    @media (max-width: 768px) {
+        .reel-thumbnail { opacity: 1 !important; }
+        .reel-video { display: none !important; }
+    }
+    
+    /* --- Stories Section Styles --- */
+    .stories-panel {
+        padding: 15px;
+    }
+    .stories-panel h3 {
+        color: #4a6bff; margin-bottom: 15px; font-size: 1.3rem; text-align: right;
+        border-bottom: 1px solid var(--panel-border); padding-bottom: 8px;
+    }
+    .stories-horizontal-scroll {
+        display: flex; overflow-x: auto; gap: 12px; padding: 10px 5px;
+    }
+    .story-card-link { text-decoration: none; }
+    .story-card {
+        flex: 0 0 110px; width: 110px; height: 180px;
+        background-color: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden;
+        position: relative; cursor: pointer; transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .story-card:hover { transform: translateY(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+    .story-preview-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+    .story-card:hover .story-preview-img { transform: scale(1.05); }
+    .story-overlay {
+        position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; color: white; text-align: center;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%); z-index: 2;
+    }
+    .story-overlay .user-avatar {
+        width: 36px; height: 36px; border-radius: 50%; border: 2px solid #4a6bff;
+        object-fit: cover; margin-bottom: 5px;
+    }
+    .story-overlay .username {
+        font-weight: bold; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .add-story-card {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background-color: rgba(42, 42, 46, 0.8); /* تعديل الشفافية */
+        color: #e0e0e0; font-size: 0.9rem;
+    }
+    .add-story-card .plus-icon {
+        width: 44px; height: 44px; border-radius: 50%; background: #4a6bff; color: white;
+        display: flex; align-items: center; justify-content: center; font-size: 28px;
+        margin-bottom: 12px; transition: background-color 0.2s;
+    }
+    .add-story-card:hover .plus-icon { background-color: #3a5bef; }
+
+    /* CSS لإخفاء شريط التمرير ولكن السماح بالتمرير */
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+<div class="dark-home">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                <div class="stories-panel">
+                    <h3><i class="fas fa-bolt me-2"></i> القصص</h3>
+                    <div class="stories-horizontal-scroll hide-scrollbar">
+                        <a href="{% url 'upload_story' %}" class="story-card-link">
+                            <div class="story-card add-story-card">
+                                <div class="plus-icon">+</div>
+                                <span>أضف قصة</span>
+                            </div>
+                        </a>
+
+                        {% for data in stories_data.users_with_previews %}
+                        <a href="{% url 'view_stories' username=data.user.username %}" class="story-card-link">
+                            <div class="story-card">
+                                <img src="{{ data.preview_story.preview_url }}" 
+                                     alt="Story from @{{ data.user.username }}" 
+                                     class="story-preview-img"
+                                     onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+                                <div class="story-overlay">
+                                    <img src="{{ data.user.profile_picture.url|default:'/static/images/default_profile.png' }}" 
+                                         class="user-avatar"
+                                         onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+                                    <div class="username">@{{ data.user.username }}</div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="quran-athkar-panel">
+                    <h3>أذكار و أدعية</h3>
+                    <p id="quran-athkar-text" class="quran-athkar-content"></p>
+                </div>
+
+
+
+                {% for post in posts %}
+                    {# The post_template.html will now inherit the glassy style via the .dark-card class #}
+                    {% include 'social/post_template.html' with post=post %}
+
+                    {# Reels section is inserted after the first post #}
+                    {% if forloop.counter == 1 and home_reels %}
+                    <div class="reels-section-container">
+                        <h3><i class="fas fa-film me-2"></i> شاهد الريلز</h3>
+                        <div class="reels-horizontal-scroll hide-scrollbar">
+                            {% for reel in home_reels %}
+                            <a href="{% url 'reels_feed' %}?show_reel={{ reel.id }}" class="reel-card-link">
+                                <div class="reel-card">
+                                    <div class="reel-views-overlay">
+                                        <i class="fas fa-eye me-1"></i>
+                                        <span>{{ reel.views_count }}</span>
+                                    </div>
+                                    {% if reel.thumbnail_url %}
+                                        <img src="{{ reel.thumbnail_url }}"
+                                             alt="Reel thumbnail"
+                                             class="reel-thumbnail"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                                    {% endif %}
+                                    <video src="{{ reel.video.url }}"
+                                           class="reel-video"
+                                           {% if not reel.thumbnail_url %}style="display: block;"{% endif %}
+                                           muted
+                                           loop
+                                           preload="none"
+                                           playsinline
+                                           onmouseover="if(!this.playing) this.play()"
+                                           onmouseout="this.pause(); this.currentTime=0;"></video>
+                                    <div class="reel-card-overlay">
+                                        <div class="d-flex align-items-center" dir="rtl">
+                                            <img src="{{ reel.user.profile_picture.url|default:'/static/images/default_profile.png' }}"
+                                                 class="reel-card-user-img"
+                                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';">
+                                            <span>@{{ reel.user.username }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quranAthkarData = [
+            // أدعية قرآنية
+            { type: "quran", text: "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ" },
+            { type: "quran", text: "رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رِحْمَةً إِنَّكَ أَنتَ الْوَهَّابُ" },
+            { type: "quran", text: "رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي وَاحْلُلْ عُقْدَةً مِّن لِّسَانِي يَفْقَهُوا قَوْلِي" },
+            { type: "quran", text: "رَبَّنَا ظَلَمْنَا أَنفُسَنَا وَإِن لَّمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ" },
+            { type: "quran", text: "رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِن ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ" },
+            { type: "quran", text: "رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا" },
+            { type: "quran", text: "لَّا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ" },
+            { type: "quran", text: "رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا وَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ" },
+            { type: "quran", text: "رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَىٰ وَالِدَيَّ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ وَأَدْخِلْنِي بِرَحْمَتِكَ فِي عِبَادِكَ الصَّالِحِينَ" },
+            { type: "quran", text: "رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا" },
+
+            // أذكار وأدعية نبوية ومأثورة
+            { type: "athkar", text: "سبحان الله وبحمده عدد خلقه، ورضا نفسه، وزنة عرشه، ومداد كلماته" }, // (3 مرات صباحاً)
+            { type: "athkar", text: "اللهم صل وسلم وبارك على نبينا محمد" }, // (10 مرات صباحاً ومساءً)
+            { type: "athkar", text: "أستغفر الله العظيم الذي لا إله إلا هو الحي القيوم وأتوب إليه" },
+            { type: "athkar", text: "لا حول ولا قوة إلا بالله" },
+            { type: "athkar", text: "سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر" },
+            { type: "athkar", text: "اللهم بك أصبحنا، وبك أمسينا، وبك نحيا، وبك نموت، وإليك النشور" }, // (دعاء الصباح)
+            { type: "athkar", text: "اللهم بك أمسينا، وبك أصبحنا، وبك نحيا، وبك نموت، وإليك المصير" }, // (دعاء المساء)
+            { type: "athkar", text: "اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت، أعوذ بك من شر ما صنعت، أبوء لك بنعمتك علي، وأبوء بذنبي فاغفر لي فإنه لا يغفر الذنوب إلا أنت" }, // (سيد الاستغفار)
+            { type: "athkar", text: "بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم" }, // (3 مرات صباحاً ومساءً)
+            { type: "athkar", text: "أعوذ بكلمات الله التامات من شر ما خلق" }, // (3 مرات مساءً)
+            { type: "athkar", text: "رضيت بالله رباً، وبالإسلام ديناً، وبمحمد صلى الله عليه وسلم نبياً" }, // (3 مرات صباحاً ومساءً)
+            { type: "athkar", text: "يا حي يا قيوم برحمتك أستغيث، أصلح لي شأني كله، ولا تكلني إلى نفسي طرفة عين" }, // (صباحاً ومساءً)
+            { type: "athkar", text: "اللهم عافني في بدني، اللهم عافني في سمعي، اللهم عافني في بصري، لا إله إلا أنت" }, // (3 مرات صباحاً ومساءً)
+            { type: "athkar", text: "اللهم إني أسألك العفو والعافية في الدنيا والآخرة" },
+            { type: "athkar", text: "اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً" }, // (بعد صلاة الفجر أو في الصباح)
+            { type: "athkar", text: "اللهم إني أعوذ بك من الهم والحزن، وأعوذ بك من العجز والكسل، وأعوذ بك من الجبن والبخل، وأعوذ بك من غلبة الدين وقهر الرجال" },
+            { type: "athkar", text: "اللهم اهدني فيمن هديت، وعافني فيمن عافيت، وتولني فيمن توليت، وبارك لي فيما أعطيت، وقني شر ما قضيت، فإنك تقضي ولا يقضى عليك، إنه لا يذل من واليت، تباركت ربنا وتعاليت" }, // (دعاء القنوت ويمكن الدعاء به في أي وقت)
+            { type: "athkar", text: "اللهم مصرف القلوب صرف قلوبنا على طاعتك" },
+            { type: "athkar", text: "اللهم إني ظلمت نفسي ظلماً كثيراً، ولا يغفر الذنوب إلا أنت، فاغفر لي مغفرة من عندك، وارحمني إنك أنت الغفور الرحيم" },
+            { type: "athkar", text: "اللهم أعني على ذكرك وشكرك وحسن عبادتك" },
+            { type: "athkar", text: "اللهم إني أسألك الهدى والتقى والعفاف والغنى" },
+            { type: "athkar", text: "اللهم آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار" }, // (تكرار للدعاء القرآني لأهميته)
+            { type: "athkar", text: "اللهم إني أعوذ بك من زوال نعمتك، وتحول عافيتك، وفجاءة نقمتك، وجميع سخطك" },
+            { type: "athkar", text: "اللهم أصلح لي ديني الذي هو عصمة أمري، وأصلح لي دنياي التي فيها معاشي، وأصلح لي آخرتي التي فيها معادي، واجعل الحياة زيادة لي في كل خير، واجعل الموت راحة لي من كل شر" },
+            { type: "athkar", text: "اللهم إني أعوذ بك من علم لا ينفع، ومن قلب لا يخشع، ومن نفس لا تشبع، ومن دعوة لا يستجاب لها" },
+            { type: "athkar", text: "سبحانك اللهم وبحمدك، أشهد أن لا إله إلا أنت، أستغفرك وأتوب إليك" }, // (كفارة المجلس)
+            { type: "athkar", text: "اللهم اغفر لي، وارحمني، واهدني، وعافني، وارزقني" },
+            { type: "athkar", text: "اللهم إني أسألك الجنة وما قرب إليها من قول أو عمل، وأعوذ بك من النار وما قرب إليها من قول أو عمل" },
+            { type: "athkar", text: "اللهم زدنا ولا تنقصنا، وأكرمنا ولا تهنا، وأعطنا ولا تحرمنا، وآثرنا ولا تؤثر علينا، وأرضنا وارض عنا" },
+            { type: "athkar", text: "اللهم قني عذابك يوم تبعث عبادك" },
+            { type: "athkar", text: "الحمد لله الذي أطعمنا وسقانا وجعلنا مسلمين" }, // (بعد الطعام والشراب)
+            { type: "athkar", text: "اللهم بارك لنا فيه وأطعمنا خيراً منه" }, // (عند شرب اللبن)
+            { type: "athkar", text: "اللهم لك الحمد أنت كسوتنيه، أسألك من خيره وخير ما صنع له، وأعوذ بك من شره وشر ما صنع له" }, // (دعاء لبس الثوب الجديد)
+            { type: "athkar", text: "بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله" }, // (عند الخروج من المنزل)
+            { type: "athkar", text: "اللهم إني أعوذ بك أن أضل أو أُضل، أو أزل أو أُزل، أو أظلم أو أُظلم، أو أجهل أو يُجهل علي" }, // (عند الخروج من المنزل)
+            { type: "athkar", text: "بسم الله ولجنا، وبسم الله خرجنا، وعلى ربنا توكلنا" }, // (عند الدخول إلى المنزل)
+            { type: "athkar", text: "اللهم افتح لي أبواب رحمتك" }, // (عند دخول المسجد)
+            { type: "athkar", text: "اللهم إني أسألك من فضلك" }, // (عند الخروج من المسجد)
+            { type: "athkar", text: "أعوذ بالله العظيم، وبوجهه الكريم، وسلطانه القديم، من الشيطان الرجيم" }, // (عند دخول المسجد)
+            { type: "athkar", text: "الحمد لله الذي رد علي روحي وعافاني في جسدي وأذن لي بذكره" }, // (عند الاستيقاظ من النوم)
+            { type: "athkar", text: "باسمك اللهم أموت وأحيا" }, // (قبل النوم)
+            { type: "athkar", text: "اللهم أسلمت نفسي إليك، وفوضت أمري إليك، ووجهت وجهي إليك، وألجأت ظهري إليك، رغبة ورهبة إليك، لا ملجأ ولا منجا منك إلا إليك، آمنت بكتابك الذي أنزلت، وبنبيك الذي أرسلت" }, // (قبل النوم)
+            { type: "athkar", text: "اللهم رب السموات السبع وما أظللن، ورب الأرضين وما أقللن، ورب الشياطين وما أضللن، أسألك خير هذه القرية وخير أهلها وخير ما فيها، وأعوذ بك من شرها وشر أهلها وشر ما فيها" }, // (عند دخول قرية أو بلدة)
+            { type: "athkar", text: "اللهم بارك لهم فيما رزقتهم، واغفر لهم، وارحمهم" }, // (الدعاء لمن أطعمك أو سقاك)
+            { type: "athkar", text: "أفطر عندكم الصائمون، وأكل طعامكم الأبرار، وصلت عليكم الملائكة" }, // (الدعاء عند الإفطار عند قوم)
+            { type: "athkar", text: "ذهب الظمأ، وابتلت العروق، وثبت الأجر إن شاء الله" }, // (بعد الإفطار للصائم)
+            { type: "athkar", text: "اللهم إني لك صمت، وعلى رزقك أفطرت" }, // (عند الإفطار)
+            { type: "athkar", text: "سبحان الذي سخر لنا هذا وما كنا له مقرنين وإنا إلى ربنا لمنقلبون" }, // (دعاء الركوب)
+            { type: "athkar", text: "اللهم إنا نسألك في سفرنا هذا البر والتقوى، ومن العمل ما ترضى" }, // (دعاء السفر)
+            { type: "athkar", text: "آيبون، تائبون، عابدون، لربنا حامدون" }, // (عند الرجوع من السفر)
+        ];
+
+        const contentElement = document.getElementById('quran-athkar-text');
+        let currentIndex = -1;
+        const displayInterval = 7000;
+        const fadeDuration = 1500;
+
+        function displayNextItem() {
+            contentElement.classList.remove('visible');
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % quranAthkarData.length;
+                if (quranAthkarData.length > 0) {
+                    contentElement.textContent = quranAthkarData[currentIndex].text;
+                } else {
+                    contentElement.textContent = "لا يوجد محتوى لعرضه حالياً.";
+                }
+                contentElement.classList.add('visible');
+            }, fadeDuration);
+        }
+
+        displayNextItem();
+        setInterval(displayNextItem, displayInterval + fadeDuration);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    /* ... Your existing styles ... */
+    .dark-create-post {
+        background-color: #121212;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding-top: 30px;
+    }
+    .dark-post-card {
+        background-color: #1e1e1e;
+        border-color: #333;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .form-control-dark {
+        background-color: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e0e0e0 !important;
+    }
+    .form-control-dark::placeholder {
+        color: #9e9e9e !important;
+    }
+    .btn-outline-primary {
+        color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-outline-primary:hover {
+        background-color: #4a6bff;
+        color: #fff;
+    }
+    .btn-primary {
+        background-color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-primary:hover {
+        background-color: #3a5bef;
+        border-color: #3a5bef;
+    }
+    #media-preview {
+        border: 1px dashed #444;
+        background-color: #252525;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        min-height: 80px;
+        margin-top: 15px;
+    }
+    .preview-title {
+        color: #9e9e9e;
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+    .card-title {
+        color: #ffffff;
+        border-bottom: 1px solid #333;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="dark-create-post">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="dark-post-card card mb-4">
+                    <div class="card-body">
+                        <form method="POST" action="{% url 'create_post' %}" enctype="multipart/form-data" id="createPostForm">
+                            {% csrf_token %}
+                            <h5 class="card-title"><i class="fas fa-plus-circle me-2"></i>إنشاء منشور جديد</h5>
+                            
+                            <div class="form-group mb-4">
+                                <textarea class="form-control form-control-dark" name="content" rows="5" 
+                                          placeholder="بماذا تفكر؟"></textarea>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <label for="image-upload" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-image me-2"></i> إضافة صورة
+                                        </label>
+                                        <input id="image-upload" type="file" name="image" accept="image/*" 
+                                               style="display: none;" onchange="previewFile(this, 'image')">
+                                    </div>
+                                    <div>
+                                        <label for="video-upload" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-video me-2"></i> إضافة فيديو
+                                        </label>
+                                        <input id="video-upload" type="file" name="video" accept="video/*" 
+                                               style="display: none;" onchange="previewFile(this, 'video')">
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary px-4" id="publishButton">
+                                    <i class="fas fa-paper-plane me-2"></i> نشر
+                                </button>
+                            </div>
+
+                            <div id="media-preview" class="d-flex flex-column align-items-center justify-content-center">
+                                <span class="preview-title">معاينة المرفقات ستظهر هنا</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewFile(input, type) {
+    const previewContainer = document.getElementById('media-preview');
+    previewContainer.innerHTML = ''; // مسح المحتوى السابق
+    
+    const previewTitle = document.createElement('span');
+    previewTitle.className = 'preview-title mb-2';
+    previewTitle.textContent = 'معاينة المرفق:';
+    previewContainer.appendChild(previewTitle);
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-fluid rounded shadow';
+                img.style.maxHeight = '300px';
+                img.style.maxWidth = '100%';
+                previewContainer.appendChild(img);
+                addRemoveButton(previewContainer, input);
+            } else if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = e.target.result;
+                video.controls = true;
+                video.className = 'img-fluid rounded shadow';
+                video.style.maxHeight = '300px';
+                video.style.maxWidth = '100%';
+                previewContainer.appendChild(video);
+                addRemoveButton(previewContainer, input);
+            }
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+function addRemoveButton(container, input) {
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn btn-sm btn-outline-danger mt-3';
+    removeBtn.innerHTML = '<i class="fas fa-times me-1"></i> إزالة';
+    removeBtn.onclick = function(e) {
+        e.preventDefault();
+        input.value = '';
+        container.innerHTML = '<span class="preview-title">معاينة المرفقات ستظهر هنا</span>';
+    };
+    container.appendChild(removeBtn);
+}
+
+document.getElementById('createPostForm').addEventListener('submit', function() {
+    var publishButton = document.getElementById('publishButton');
+    // تحقق مما إذا كان المستخدم يحاول النشر بدون محتوى أو مرفق (اختياري، يمكنك إضافة منطق التحقق هنا)
+    // var content = document.querySelector('textarea[name="content"]').value.trim();
+    // var imageFile = document.getElementById('image-upload').files.length > 0;
+    // var videoFile = document.getElementById('video-upload').files.length > 0;
+    // if (!content && !imageFile && !videoFile) {
+    //     // alert('يرجى كتابة محتوى أو إضافة صورة/فيديو.'); // أو عرض رسالة بطريقة أفضل
+    //     // event.preventDefault(); // منع الإرسال
+    //     return; 
+    // }
+
+    publishButton.disabled = true;
+    publishButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري النشر...';
+});
+</script>
+{% endblock %}

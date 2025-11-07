@@ -1,0 +1,59 @@
+{% extends 'social/base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h2 style="color: #ffffff;">نتائج البحث</h2>
+            {% if query %}
+                <p class="text-muted">عرض النتائج لـ: <strong class="text-primary">"{{ query }}"</strong></p>
+            {% endif %}
+
+            {% if users %}
+                <div class="card mb-4 border-secondary">
+                    <div class="card-header bg-dark">
+                        <h5 style="color: #ffffff;">المستخدمون</h5>
+                    </div>
+                    <div class="card-body bg-darker">
+                        <div class="list-group">
+                            {% for user in users %}
+                                <a href="{% url 'profile' user.username %}" 
+                                   class="list-group-item list-group-item-action bg-dark border-secondary">
+                                    <div class="d-flex align-items-center">
+                                        {% if user.profile_picture %}
+                                            <img src="{{ user.profile_picture.url }}" 
+                                                 class="rounded-circle me-3 border border-primary" 
+                                                 alt="{{ user.username }}"
+                                                 style="width: 50px; height: 50px; object-fit: cover;"
+                                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                                        {% else %}
+                                            <img src="/media/profile_pics/default_profile.png" 
+                                                 class="rounded-circle me-3 border border-primary" 
+                                                 alt="الصورة الافتراضية"
+                                                 style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% endif %}
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center">
+                                                <h6 class="mb-1 me-2 text-primary">{{ user.get_full_name }}</h6>
+                                                {% if user.has_blue_badge %}
+                                                    <i class="fas fa-check-circle text-info" title="حساب موثوق"></i>
+                                                {% endif %}
+                                            </div>
+                                            <small class="text-muted">@{{ user.username }}</small>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-dark border-secondary">
+                    <i class="fas fa-info-circle me-2"></i>
+                    لا توجد نتائج مطابقة لبحثك.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% extends 'social/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    :root {
+        --bg-primary: #0f0f0f;
+        --bg-secondary: #1a1a1a;
+        --bg-card: #222222;
+        --bg-hover: #2a2a2a;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --text-primary: #ffffff;
+        --text-secondary: #9ca3af;
+        --border-color: #333333;
+        --shadow-light: rgba(59, 130, 246, 0.1);
+        --shadow-dark: rgba(0, 0, 0, 0.3);
+        --danger-color: #b91c1c;
+        --danger-hover: #991b1b;
+    }
+
+    body {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .container-edit-profile {
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .edit-profile-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 6px 24px var(--shadow-dark);
+    }
+
+    .edit-profile-header {
+        background-color: var(--bg-secondary);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        text-align: center;
+        border-top-left-radius: 16px; /* Match card radius */
+        border-top-right-radius: 16px; /* Match card radius */
+    }
+
+    .edit-profile-header h3 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .edit-profile-body {
+        padding: 2rem;
+    }
+
+    /* Styling for individual form field containers */
+    .form-field-container {
+        margin-bottom: 1.75rem;
+    }
+
+    .form-label { /* General label styling */
+        display: block;
+        margin-bottom: 0.6rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Styling for standard input fields (text, email, textarea, etc.) */
+    .edit-form input[type="text"],
+    .edit-form input[type="email"],
+    .edit-form input[type="url"],
+    .edit-form input[type="password"],
+    .edit-form textarea,
+    .edit-form select { /* Applied to select as well */
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .edit-form input[type="text"]:focus,
+    .edit-form input[type="email"]:focus,
+    .edit-form input[type="url"]:focus,
+    .edit-form input[type="password"]:focus,
+    .edit-form textarea:focus,
+    .edit-form select:focus { /* Applied to select as well */
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px var(--shadow-light);
+    }
+
+    .edit-form textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+     /* Styling for SelectDateWidget in edit form */
+    .select-date-widget-edit select {
+        display: inline-block;
+        width: calc(33.33% - 10px); /* Adjust width as needed */
+        margin-left: 5px; /* Spacing between selects */
+        margin-bottom: 5px;
+        padding: 0.7rem 0.9rem; /* Match other inputs a bit closer */
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.95rem; /* Match other inputs */
+    }
+    .select-date-widget-edit select:last-child {
+        margin-left: 0;
+    }
+    .select-date-widget-edit select:focus {
+        border-color: var(--accent-color);
+        outline: none;
+        box-shadow: 0 0 0 3px var(--shadow-light);
+    }
+
+
+    .form-text.text-secondary { /* Help text */
+        font-size: 0.8rem;
+    }
+    .text-danger { /* Error messages */
+        font-size: 0.8rem;
+    }
+
+    /* Styling for Image Editor Fields */
+    .image-editor-field .image-preview-wrapper {
+        position: relative;
+        margin-bottom: 0.5rem; /* Space before Django's default widget output */
+    }
+
+    .editable-image {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        object-fit: cover;
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        background-color: var(--bg-secondary); /* Placeholder background */
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+    }
+    .editable-image:hover {
+        border-color: var(--accent-color);
+    }
+
+    .profile-image-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%; /* Circular profile picture */
+    }
+
+    .cover-image-preview {
+        width: 100%;
+        max-height: 200px; /* Adjust as needed */
+        aspect-ratio: 16 / 6; /* Common aspect ratio for covers */
+        border-radius: 8px;
+    }
+
+    .change-image-btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+        /* display: block; remove if you want it next to image or centered below */
+        /* margin: 0.5rem auto 0; */
+    }
+    .change-image-btn i {
+        margin-left: 0.3rem; /* RTL: margin-right */
+    }
+
+    /* Styling Django's ClearableFileInput widget parts */
+    .django-field-widgets {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
+    .django-field-widgets br {
+        display: none; /* Hide extra breaks from Django widget if any */
+    }
+    .django-field-widgets > label, /* Label for "Clear:" checkbox */
+    .django-field-widgets > input[type="checkbox"] {
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 0.3rem; /* RTL: margin-left */
+    }
+     .django-field-widgets > input[type="checkbox"] {
+        accent-color: var(--accent-color);
+        transform: scale(1.1);
+        cursor: pointer;
+    }
+    .django-field-widgets a { /* "Currently: ..." link */
+        color: var(--accent-color);
+        word-break: break-all;
+        margin-right: 0.5rem; /* RTL: margin-left */
+    }
+    .django-field-widgets > span { /* "Currently:" or "Change:" text */
+         margin-right: 0.3rem; /* RTL: margin-left */
+    }
+
+
+    .edit-profile-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-start;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-custom-edit {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        min-width: 130px;
+    }
+
+    .btn-custom-edit.btn-primary-edit {
+        background: var(--accent-color);
+        color: white;
+    }
+    .btn-custom-edit.btn-primary-edit:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    .btn-custom-edit.btn-secondary-edit {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+    .btn-custom-edit.btn-secondary-edit:hover {
+        background: var(--bg-hover);
+        border-color: var(--text-secondary);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 576px) {
+        .edit-profile-header { padding: 1rem 1.5rem; }
+        .edit-profile-header h3 { font-size: 1.5rem; }
+        .edit-profile-body { padding: 1.5rem; }
+        .edit-profile-actions { flex-direction: column; }
+        .btn-custom-edit { width: 100%; }
+        .cover-image-preview { aspect-ratio: 16 / 7; } /* Adjust for smaller screens */
+        .select-date-widget-edit select {
+            width: 100%; /* Full width on small screens */
+            margin-left: 0;
+            margin-bottom: 10px;
+        }
+    }
+</style>
+
+<div class="container-edit-profile" dir="rtl">
+    <div class="edit-profile-card">
+        <div class="edit-profile-header">
+            <h3>تعديل الملف الشخصي</h3>
+        </div>
+        <div class="edit-profile-body">
+            <form method="POST" enctype="multipart/form-data" class="edit-form">
+                {% csrf_token %}
+
+                {% for field in form %}
+                    <div class="form-field-container" id="container-{{ field.auto_id }}">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                        {% if field.name == 'profile_picture' or field.name == 'cover_photo' %}
+                            <div class="image-editor-field">
+                                <div class="image-preview-wrapper text-center mb-2">
+                                    {% if field.name == 'profile_picture' %}
+                                        <img src="{% if field.value %}{{ field.value.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}"
+                                             alt="معاينة صورة الملف الشخصي" id="{{ field.auto_id }}_preview" class="editable-image profile-image-preview">
+                                    {% elif field.name == 'cover_photo' %}
+                                        <img src="{% if field.value %}{{ field.value.url }}{% else %}{% static 'images/default_cover.png' %}{% endif %}"
+                                             alt="معاينة صورة الغلاف" id="{{ field.auto_id }}_preview" class="editable-image cover-image-preview">
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-custom-edit btn-secondary-edit change-image-btn mt-2" onclick="document.getElementById('{{ field.auto_id }}').click();">
+                                        <i class="fas fa-camera"></i> {% if field.value %}تغيير الصورة{% else %}اختيار صورة{% endif %}
+                                    </button>
+                                </div>
+                                <div class="django-field-widgets">
+                                    {{ field }} {# Renders 'Currently:', 'Clear', and the actual file input #}
+                                </div>
+                            </div>
+                        {% elif field.name == 'date_of_birth' %}
+                             <div class="select-date-widget-edit">
+                                {{ field }}
+                             </div>
+                        {% else %}
+                            {{ field }} {# Default rendering for other fields, CSS above will style them #}
+                        {% endif %}
+
+                        {% if field.help_text %}<small class="form-text text-secondary d-block mt-1">{{ field.help_text|safe }}</small>{% endif %}
+                        {% for error in field.errors %}<small class="text-danger d-block mt-1">{{ error }}</small>{% endfor %}
+                    </div>
+                {% endfor %}
+
+                <div class="edit-profile-actions">
+                    <button type="submit" class="btn-custom-edit btn-primary-edit">
+                        <i class="fas fa-save me-2"></i>حفظ التغييرات
+                    </button>
+                    <a href="{% url 'profile' request.user.username %}" class="btn-custom-edit btn-secondary-edit">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.image-editor-field').forEach(fieldWrapper => {
+        const fileInput = fieldWrapper.querySelector('.django-field-widgets input[type="file"]');
+        const previewImg = fieldWrapper.querySelector('.editable-image');
+        const changeButtonTextSpan = fieldWrapper.querySelector('.change-image-btn');
+
+        if (fileInput && previewImg) {
+            fileInput.style.display = 'none';
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                    if (changeButtonTextSpan) {
+                        changeButtonTextSpan.innerHTML = '<i class="fas fa-camera"></i> تغيير الصورة';
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

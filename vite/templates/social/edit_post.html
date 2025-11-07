@@ -1,0 +1,102 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    .dark-edit-post {
+        background-color: #121212;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding-top: 30px;
+    }
+    .dark-edit-card {
+        background-color: #1e1e1e;
+        border-color: #333;
+    }
+    .dark-edit-header {
+        background-color: #1a1a1a;
+        border-bottom-color: #333;
+        color: #ffffff;
+    }
+    .form-control-dark {
+        background-color: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e0e0e0 !important;
+    }
+    .form-control-dark::placeholder {
+        color: #9e9e9e !important;
+    }
+    .btn-outline-primary {
+        color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-outline-primary:hover {
+        background-color: #4a6bff;
+        color: #fff;
+    }
+    .btn-primary {
+        background-color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-primary:hover {
+        background-color: #3a5bef;
+        border-color: #3a5bef;
+    }
+    .btn-outline-secondary {
+        color: #9e9e9e;
+        border-color: #9e9e9e;
+    }
+    .btn-outline-secondary:hover {
+        background-color: #9e9e9e;
+        color: #121212;
+    }
+</style>
+
+<div class="dark-edit-post">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="dark-edit-card card shadow-lg">
+                    <div class="dark-edit-header card-header">
+                        <h3><i class="fas fa-edit me-2"></i>تعديل المنشور</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="form-group mb-4">
+                                <textarea class="form-control form-control-dark" name="content" rows="5" 
+                                          placeholder="بماذا تفكر؟">{{ post.content }}</textarea>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex">
+                                    <div class="me-2">
+                                        <label for="image-upload" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-image me-1"></i> تغيير الصورة
+                                        </label>
+                                        <input id="image-upload" type="file" name="image" accept="image/*" style="display: none;">
+                                    </div>
+                                    <div>
+                                        <label for="video-upload" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-video me-1"></i> تغيير الفيديو
+                                        </label>
+                                        <input id="video-upload" type="file" name="video" accept="video/*" style="display: none;">
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <button type="submit" class="btn btn-primary me-2">
+                                        <i class="fas fa-save me-1"></i> حفظ
+                                    </button>
+                                    <a href="{% url 'profile' request.user.username %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i> إلغاء
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

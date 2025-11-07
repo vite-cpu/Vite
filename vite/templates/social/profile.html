@@ -1,0 +1,618 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% block content %}
+    <link rel="icon" type="image/jpg" href="https://upload.wikimedia.org/wikipedia/commons/4/46/1000084215-removebg-preview.png">
+
+<style>
+    :root {
+        --bg-primary: #0f0f0f;
+        --bg-secondary: #1a1a1a;
+        --bg-card: #222222;
+        --bg-item-box: #282828;
+        --bg-hover: #313131;
+        --button-hover-bg: #383838;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --text-primary: #ffffff;
+        --text-secondary: #9ca3af;
+        --border-color: #333333;
+        --border-item-box: #404040;
+        --danger-color: #ef4444;
+        --danger-hover-bg: #dc2626;
+        --success-color: #22c55e;
+        --success-hover-bg: #16a34a;
+        --warning-color: #f97316;
+        --warning-hover-bg: #ea580c;
+        --info-color: #0ea5e9;
+        --info-hover-bg: #0284c7;
+        --shadow-light: rgba(59, 130, 246, 0.1);
+        --shadow-dark: rgba(0, 0, 0, 0.5);
+    }
+
+    body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .profile-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px var(--shadow-dark);
+    }
+
+    .cover-section {
+        height: 200px;
+        background: linear-gradient(135deg, var(--accent-color), #1e40af);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cover-section img { width: 100%; height: 100%; object-fit: cover; }
+
+    .profile-content { padding: 0 2rem 2rem 2rem; position: relative; }
+
+    .profile-avatar {
+        width: 120px; height: 120px; border-radius: 50%;
+        border: 4px solid var(--bg-card); margin: -60px auto 0;
+        position: relative; /* تم تعديل هذا */
+        display: block; background: var(--bg-secondary);
+        overflow: visible; /* تم تعديل هذا للسماح بظهور الحدود */
+    }
+
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; /* لتكون الصورة دائرية تماماً */ }
+    
+    /* تعديل نمط النقطة الخضراء هنا */
+    .profile-avatar .online-indicator {
+        position: absolute;
+        bottom: 5px; /* تعديل المسافة من الأسفل */
+        right: 5px; /* تعديل المسافة من اليمين */
+        width: 18px; /* حجم أكبر مناسب للصورة الكبيرة */
+        height: 18px;
+        background-color: var(--success-color);
+        border-radius: 50%;
+        border: 3px solid var(--bg-card); /* حدود بنفس لون خلفية الكرت */
+        box-shadow: 0 0 7px var(--success-color);
+        z-index: 10;
+    }
+
+    .profile-info { text-align: center; margin-top: 1.5rem; }
+    .profile-name { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem 0; color: var(--text-primary); }
+    .profile-username { font-size: 1rem; color: var(--text-secondary); margin: 0 0 1rem 0; }
+    .verified-badge { color: var(--accent-color); margin-left: 0.5rem; font-size: 1.2rem; }
+    [dir="rtl"] .verified-badge { margin-right: 0.5rem; margin-left: 0; }
+    .online-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: var(--success-color);
+        border-radius: 50%;
+        margin-left: 8px;
+        vertical-align: middle;
+        box-shadow: 0 0 5px var(--success-color);
+    }
+
+
+    .points-display {
+        display: inline-flex; align-items: center; background: var(--bg-secondary);
+        padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600;
+        margin-bottom: 1.5rem; border: 1px solid var(--border-color);
+    }
+    .points-display i { color: #fbbf24; }
+    [dir="rtl"] .points-display i { margin-left: 0.5rem; }
+    [dir="ltr"] .points-display i { margin-right: 0.5rem; }
+
+
+    .action-buttons {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+    }
+
+    .btn-custom {
+        padding: 0.5rem 0.85rem;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.8rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        min-width: auto;
+        justify-content: center;
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+    }
+    .btn-custom:hover {
+        background-color: var(--button-hover-bg);
+        color: var(--text-primary);
+        border-color: var(--text-secondary);
+    }
+
+    [dir="rtl"] .btn-custom i { margin-left: 0.4rem; margin-right: 0; }
+    [dir="ltr"] .btn-custom i { margin-right: 0.4rem; margin-left: 0; }
+
+    .btn-primary {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
+    .btn-primary:hover {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: var(--bg-item-box);
+        border-color: var(--border-item-box);
+        color: var(--text-primary);
+    }
+    .btn-secondary:hover {
+        background-color: var(--button-hover-bg);
+        border-color: var(--text-secondary);
+        color: var(--text-primary);
+    }
+
+    .btn-danger {
+        border-color: var(--danger-color);
+        color: var(--danger-color);
+    }
+    .btn-danger:hover {
+        background-color: var(--danger-color);
+        border-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-success {
+        border-color: var(--success-color);
+        color: var(--success-color);
+    }
+    .btn-success:hover {
+        background-color: var(--success-color);
+        border-color: var(--success-color);
+        color: white;
+    }
+    
+    .btn-warning {
+        border-color: var(--warning-color);
+        color: var(--warning-color);
+    }
+    .btn-warning:hover {
+        background-color: var(--warning-color);
+        border-color: var(--warning-color);
+        color: white;
+    }
+
+    .btn-info {
+        border-color: var(--info-color);
+        color: var(--info-color);
+    }
+    .btn-info:hover {
+        background-color: var(--info-color);
+        border-color: var(--info-color);
+        color: white;
+    }
+
+    .btn-disabled {
+        background-color: transparent;
+        border-color: var(--border-color);
+        color: var(--text-secondary);
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .btn-disabled:hover {
+        background-color: transparent;
+        color: var(--text-secondary);
+        border-color: var(--border-color);
+    }
+
+
+    .container-custom { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+
+    .profile-tabs-container {
+        margin-top: 2rem; background: var(--bg-card);
+        border: 1px solid var(--border-color); border-radius: 12px;
+        overflow: hidden;
+    }
+    .tabs-navigation { display: flex; background-color: var(--bg-secondary); }
+    .tab-link {
+        flex-grow: 1; padding: 0.9rem 1.2rem; text-align: center;
+        background-color: transparent; color: var(--text-secondary);
+        border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600;
+        transition: color 0.2s ease, background-color 0.2s ease, border-bottom-color 0.2s ease;
+        border-bottom: 3px solid transparent; position: relative; outline: none;
+    }
+    [dir="rtl"] .tab-link:not(:last-child) { border-left: 1px solid var(--border-color); }
+    [dir="ltr"] .tab-link:not(:last-child) { border-right: 1px solid var(--border-color); }
+    [dir="rtl"] .tab-link i { margin-left: 6px; }
+    [dir="ltr"] .tab-link i { margin-right: 6px; }
+    .tab-link:hover { color: var(--text-primary); background-color: var(--bg-hover); }
+    .tab-link.active { color: var(--accent-color); border-bottom-color: var(--accent-color); background-color: var(--bg-secondary); }
+    .tab-content { padding: 1.5rem; }
+    .tab-pane { display: none; animation: fadeIn 0.4s ease-in-out; }
+    .tab-pane.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .about-section-content { display: grid; gap: 1rem; }
+    .about-item {
+        background-color: var(--bg-item-box); border: 1px solid var(--border-item-box);
+        border-radius: 8px; padding: 0.9rem 1.1rem; display: flex;
+        align-items: center; font-size: 0.9rem; transition: background-color 0.2s ease;
+    }
+    .about-item:hover { background-color: var(--bg-hover); }
+    .about-item i.fas {
+        color: var(--accent-color); margin-left: 0.8rem; width: 22px;
+        text-align: center; flex-shrink: 0; font-size: 1.1em;
+    }
+    [dir="rtl"] .about-item i.fas { margin-right: 0.8rem; margin-left: 0; }
+
+
+    .about-item-label {
+        color: var(--text-secondary); font-weight: 500; min-width: 95px;
+        flex-shrink: 0;
+    }
+    [dir="rtl"] .about-item-label { margin-left: 0.6rem; margin-right: 0; }
+    [dir="ltr"] .about-item-label { margin-right: 0.6rem; margin-left: 0; }
+
+    .about-item-value, .about-item-placeholder { color: var(--text-primary); flex-grow: 1; word-break: break-word; }
+    .about-item-placeholder { font-style: italic; color: var(--text-secondary); }
+
+    .about-item-bio {
+        background-color: var(--bg-item-box); border: 1px solid var(--border-item-box);
+        border-radius: 8px; padding: 0.9rem 1.1rem; margin-bottom: 0;
+        display: flex; flex-direction: column; align-items: flex-start;
+    }
+    .about-item-bio:hover { background-color: var(--bg-hover); }
+    .bio-label-container { display: flex; align-items: center; margin-bottom: 0.6rem; }
+    .bio-label-container i.fas {
+        color: var(--accent-color); width: 22px; text-align: center;
+        flex-shrink: 0; font-size: 1.1em;
+    }
+    [dir="rtl"] .bio-label-container i.fas { margin-left: 0.8rem; margin-right: 0;}
+    [dir="ltr"] .bio-label-container i.fas { margin-right: 0.8rem; margin-left: 0;}
+
+
+    .bio-label-container .about-item-label { color: var(--text-secondary); font-weight: 500; margin: 0; }
+    .bio-text-value { color: var(--text-primary); line-height: 1.7; white-space: pre-wrap; width: 100%; font-size: 0.9rem; }
+    
+    .posts-section-content h4 { text-align: center; margin-bottom: 1.5rem; font-size: 1.15rem; color: var(--text-primary); }
+
+    @media (max-width: 768px) {
+        .container-custom { padding: 1rem 0.5rem; }
+        .profile-content { padding: 0 1rem 1.5rem 1rem; }
+        .profile-name { font-size: 1.5rem; }
+        .action-buttons { justify-content: center; }
+        .cover-section { height: 150px; }
+        .profile-avatar { width: 100px; height: 100px; margin-top: -50px; }
+        .tab-link { font-size: 0.9rem; padding: 0.8rem 1rem; }
+        .about-section-content { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+        .tabs-navigation { flex-direction: column; }
+        .tab-link { border-bottom: 1px solid var(--border-color); border-left: none !important; border-right: none !important;}
+        .tab-link.active { border-bottom-color: var(--accent-color); border-left: 3px solid var(--accent-color); border-bottom-width: 1px;}
+        [dir="rtl"] .tab-link.active { border-left: none; border-right: 3px solid var(--accent-color); }
+        .action-buttons .btn-custom { 
+            flex-grow: 1;
+        }
+    }
+    .posts-container-in-tab { margin-bottom: 60px; }
+    
+</style>
+<style>
+    .profile-tabs-container {
+        margin-top: 2rem; background: var(--bg-card);
+        border: 1px solid var(--border-color); border-radius: 12px;
+        overflow: hidden;
+    }
+    .tabs-navigation { 
+        display: flex; 
+        background-color: var(--bg-secondary);
+        flex-direction: row;
+        flex-wrap: nowrap;
+    }
+    .tab-link {
+        flex-grow: 1; 
+        padding: 0.9rem 1.2rem; 
+        text-align: center;
+        background-color: transparent; 
+        color: var(--text-secondary);
+        border: none; 
+        cursor: pointer; 
+        font-size: 0.95rem; 
+        font-weight: 600;
+        transition: color 0.2s ease, background-color 0.2s ease, border-bottom-color 0.2s ease;
+        border-bottom: 3px solid transparent; 
+        position: relative; 
+        outline: none;
+        white-space: nowrap;
+    }
+    [dir="rtl"] .tab-link:not(:last-child) { border-left: 1px solid var(--border-color); }
+    [dir="ltr"] .tab-link:not(:last-child) { border-right: 1px solid var(--border-color); }
+    [dir="rtl"] .tab-link i { margin-left: 6px; }
+    [dir="ltr"] .tab-link i { margin-right: 6px; }
+    .tab-link:hover { color: var(--text-primary); background-color: var(--bg-hover); }
+    .tab-link.active { color: var(--accent-color); border-bottom-color: var(--accent-color); background-color: var(--bg-secondary); }
+    .tab-content { padding: 1.5rem; }
+    .tab-pane { display: none; animation: fadeIn 0.4s ease-in-out; }
+    .tab-pane.active { display: block; }
+    
+    @media (max-width: 480px) {
+        .tabs-navigation { 
+            flex-direction: row;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab-link { 
+            flex-shrink: 0;
+            border-bottom: 3px solid transparent; 
+            border-left: none !important; 
+            border-right: none !important;
+        }
+        .tab-link.active { 
+            border-bottom-color: var(--accent-color); 
+            border-left: none !important; 
+            border-right: none !important;
+        }
+    }
+</style>
+<div class="container-custom" dir="rtl">
+    <div class="profile-card">
+        <div class="cover-section">
+        {% if profile_user.cover_photo and profile_user.cover_photo.url %}
+            <img src="{{ profile_user.cover_photo.url }}" alt="{{ profile_user.username }}'s cover photo"
+                 onerror="this.onerror=null; this.src='/media/cover_photos/default_cover.jpg';">
+        {% else %}
+            <img src='/media/cover_photos/default_cover.jpg' alt="صورة الغلاف الافتراضية"
+                 onerror="this.onerror=null; this.src='/media/cover_photos/default_cover.jpg';">
+        {% endif %}
+    </div>
+    
+    <div class="profile-avatar">
+        {% if profile_user.profile_picture and profile_user.profile_picture.url %}
+            <img src="{{ profile_user.profile_picture.url }}" alt="{{ profile_user.username }}'s profile picture"
+                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';">
+        {% else %}
+            <img src="/media/profile_pics/default_profile.png" alt="صورة البروفايل الافتراضية"
+                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';">
+        {% endif %}
+        {% if profile_user.is_online %}
+            <span class="online-indicator" title="نشط الآن"></span>
+        {% endif %}
+    </div>
+
+    <div class="profile-content">
+        <div class="profile-info">
+            <h1 class="profile-name">
+                {{ profile_user.full_name }}
+                {% if profile_user.has_blue_badge %}
+                    <i class="fas fa-check-circle verified-badge" title="حساب موثوق"></i>
+                {% endif %}
+            </h1>
+            <p class="profile-username">@{{ profile_user.username }}</p>
+            <div class="points-display">
+                <i class="fas fa-star"></i>
+                <span>{{ profile_user.points }} نقطة</span>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            {% if profile_user == request.user %}
+                <a href="{% url 'edit_profile' request.user.username %}" class="btn-custom btn-secondary"><i class="fas fa-edit"></i><span>تعديل الملف</span></a>
+                <a href="{% url 'create_post' %}" class="btn-custom btn-primary"><i class="fas fa-plus"></i><span>منشور جديد</span></a>
+                <a href="{% url 'qr_code_view' request.user.username %}" class="btn-custom btn-info"><i class="fas fa-qrcode"></i><span>كود QR</span></a>
+            {% else %}
+                {% if is_friend %}
+                    <button class="btn-custom btn-disabled" disabled><i class="fas fa-check"></i><span>أصدقاء</span></button>
+                    <a href="{% url 'chat' profile_user.username %}" class="btn-custom btn-primary"><i class="fas fa-comment"></i><span>مراسلة</span></a>
+                {% elif has_sent_request %}
+                    <button class="btn-custom btn-disabled" disabled><i class="fas fa-clock"></i><span>تم الإرسال</span></button>
+                {% elif has_received_request %}
+                    <a href="{% url 'accept_friend_request' profile_user.username %}" class="btn-custom btn-success"><i class="fas fa-check"></i><span>قبول</span></a>
+                    <a href="{% url 'reject_friend_request' profile_user.username %}" class="btn-custom btn-danger"><i class="fas fa-times"></i><span>رفض</span></a>
+                {% else %}
+                    <a href="{% url 'send_friend_request' profile_user.username %}" class="btn-custom btn-primary"><i class="fas fa-user-plus"></i><span>إضافة صديق</span></a>
+                {% endif %}
+                {% if profile_user in request.user.blocked_users.all %}
+                    <a href="{% url 'unblock_user' profile_user.username %}" class="btn-custom btn-warning"><i class="fas fa-unlock"></i><span>إلغاء الحظر</span></a>
+                {% else %}
+                    <a href="{% url 'block_user' profile_user.username %}" class="btn-custom btn-danger"><i class="fas fa-ban"></i><span>حظر</span></a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    </div> <div class="profile-tabs-container">
+        <div class="tabs-navigation">
+            <button class="tab-link active" data-tab="posts"><i class="fas fa-stream"></i>منشورات المستخدم</button>
+            <button class="tab-link" data-tab="about"><i class="fas fa-user-circle"></i>حول</button>
+        </div>
+
+        <div class="tab-content">
+            <div id="posts" class="tab-pane active">
+                <div class="posts-section-content posts-container-in-tab">
+                    {% if posts %}
+                        {% for post in posts %}
+                            {% include 'social/post_template.html' with post=post %}
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center; color: var(--text-secondary); padding: 2rem 0;">لا توجد منشورات لعرضها حالياً.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="about" class="tab-pane">
+                <div class="about-section-content">
+                    <div class="about-item">
+                        <i class="fas fa-user"></i>
+                        <span class="about-item-label">الاسم الكامل:</span>
+                        <span class="about-item-value">{{ profile_user.full_name|default:"لم يحدد" }}</span>
+                    </div>
+                    <div class="about-item">
+                        <i class="fas fa-at"></i>
+                        <span class="about-item-label">اسم المستخدم:</span>
+                        <span class="about-item-value">@{{ profile_user.username }}</span>
+                    </div>
+
+                    {% if profile_user.bio %}
+                        <div class="about-item-bio">
+                            <div class="bio-label-container">
+                                <i class="fas fa-quote-right"></i>
+                                <span class="about-item-label">نبذة تعريفية:</span>
+                            </div>
+                            <p class="bio-text-value">{{ profile_user.bio }}</p>
+                        </div>
+                    {% else %}
+                        <div class="about-item">
+                            <i class="fas fa-quote-right"></i>
+                            <span class="about-item-label">نبذة تعريفية:</span>
+                            <span class="about-item-placeholder">لا يوجد نبذة تعريفية.</span>
+                        </div>
+                    {% endif %}
+
+                    <div class="about-item">
+                        <i class="fas fa-birthday-cake"></i>
+                        <span class="about-item-label">تاريخ الميلاد:</span>
+                        {% if profile_user.date_of_birth %}
+                            <span class="about-item-value">{{ profile_user.date_of_birth|date:"d F Y" }}</span>
+                        {% else %}
+                            <span class="about-item-placeholder">لم يحدد</span>
+                        {% endif %}
+                    </div>
+                    <div class="about-item">
+                        <i class="fas fa-venus-mars"></i>
+                        <span class="about-item-label">الجنس:</span>
+                        {% if profile_user.gender %}
+                            <span class="about-item-value">{{ profile_user.get_gender_display }}</span>
+                        {% else %}
+                            <span class="about-item-placeholder">لم يحدد</span>
+                        {% endif %}
+                    </div>
+                    <div class="about-item">
+                        <i class="fas fa-heart"></i>
+                        <span class="about-item-label">الحالة الاجتماعية:</span>
+                        {% if profile_user.relationship_status %}
+                            <span class="about-item-value">{{ profile_user.get_relationship_status_display }}</span>
+                        {% else %}
+                            <span class="about-item-placeholder">لم تحدد</span>
+                        {% endif %}
+                    </div>
+                    <div class="about-item">
+                        <i class="fas fa-calendar-check"></i>
+                        <span class="about-item-label">تاريخ الانضمام:</span>
+                        <span class="about-item-value">{{ profile_user.date_joined|date:"d F Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const lastActiveTab = localStorage.getItem('profileActiveTab-{{ profile_user.username }}');
+
+    function activateTab(tabId) {
+        tabLinks.forEach(l => {
+            if (l.getAttribute('data-tab') === tabId) {
+                l.classList.add('active');
+            } else {
+                l.classList.remove('active');
+            }
+        });
+
+        tabPanes.forEach(pane => {
+            if (pane.id === tabId) {
+                pane.classList.add('active');
+            } else {
+                pane.classList.remove('active');
+            }
+        });
+        localStorage.setItem('profileActiveTab-{{ profile_user.username }}', tabId);
+    }
+
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            const tabId = this.getAttribute('data-tab');
+            activateTab(tabId);
+        });
+    });
+
+    if (lastActiveTab) {
+        const lastTabExists = Array.from(tabLinks).some(link => link.getAttribute('data-tab') === lastActiveTab);
+        if (lastTabExists) {
+            activateTab(lastActiveTab);
+        } else {
+            activateTab(tabLinks[0].getAttribute('data-tab'));
+        }
+    } else if (tabLinks.length > 0) {
+        activateTab(tabLinks[0].getAttribute('data-tab'));
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if request.user.is_authenticated %}
+    let userHasBeenActive = false;
+
+    function recordActivity() {
+        userHasBeenActive = true;
+    }
+
+    window.addEventListener('mousemove', recordActivity);
+    window.addEventListener('keydown', recordActivity);
+    window.addEventListener('scroll', recordActivity);
+    window.addEventListener('click', recordActivity);
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    function sendActivityUpdate() {
+        if (userHasBeenActive) {
+            fetch("{% url 'update_user_activity' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({})
+            }).catch(error => {
+                console.error('Error updating activity:', error);
+            });
+            userHasBeenActive = false;
+        }
+    }
+
+    sendActivityUpdate();
+    setInterval(sendActivityUpdate, 30000);
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,408 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ reel_data.reel.user.username }}'s Reel - Trimer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .reel-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            position: relative;
+            background-color: #000;
+        }
+        .reel-item {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: opacity 0.3s ease;
+        }
+        .reel-item.deleting {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .reel-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .play-pause-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 3;
+            display: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .play-pause-overlay.visible { display: block; opacity: 1; }
+        .play-pause-overlay.hidden { opacity: 0; }
+
+        .like-animation-heart {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6em;
+            color: rgba(255, 255, 255, 0.9);
+            z-index: 4;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .like-animation-heart.show { animation: like-heart-animation 0.7s ease-in-out; }
+        @keyframes like-heart-animation {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            30% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .reel-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 30%);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .reel-overlay > * { pointer-events: auto; }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 15px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
+        }
+        .top-bar .back-button { color: #fff; font-size: 1.5em; cursor: pointer; padding: 5px; }
+        .top-bar .title { color: #fff; font-size: 1.2em; font-weight: bold; }
+        
+        .video-progress-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.3);
+            z-index: 3;
+            cursor: pointer;
+        }
+        .video-progress-bar { height: 100%; background-color: #fff; width: 0%; }
+
+        .reel-actions { display: flex; flex-direction: column; align-items: flex-end; color: #fff; }
+        .action-button { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; cursor: pointer; font-size: 0.9em; }
+        .action-button i { font-size: 1.8em; margin-bottom: 5px; }
+        .action-button .fas.fa-heart { color: red; }
+        
+        .reel-details {
+            padding: 0 15px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            box-sizing: border-box;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        .reel-info { color: #fff; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); max-width: 75%; }
+        .reel-user-profile { display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; }
+        .reel-user-profile img { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; border: 2px solid #fff; }
+        .reel-user-profile .username { font-weight: bold; font-size: 1.1em; color: #fff; }
+        .reel-info .caption { margin-bottom: 5px; }
+        
+        .comments-section {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            max-height: 50vh;
+            overflow-y: auto;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            box-sizing: border-box;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 10;
+        }
+        .comments-section.active { transform: translateY(0); }
+        .comments-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; }
+        .comments-header i { cursor: pointer; }
+        .comment-item { display: flex; align-items: flex-start; margin-bottom: 10px; }
+        .comment-item img { width: 30px; height: 30px; border-radius: 50%; margin-right: 8px; }
+        .comment-content { background-color: #333; padding: 8px 12px; border-radius: 15px; flex-grow: 1; font-size: 0.9em; }
+        .comment-content .comment-username { font-weight: bold; margin-right: 5px; color: #ccc; }
+        .comment-form { display: flex; margin-top: 15px; border-top: 1px solid #444; padding-top: 10px; }
+        .comment-form input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 20px; border: 1px solid #555; background-color: #222; color: #fff; margin-right: 10px; }
+        .comment-form button { background-color: #007bff; color: #fff; border: none; border-radius: 20px; padding: 10px 15px; cursor: pointer; font-weight: bold; }
+        
+        .delete-menu, .confirmation-modal-overlay, .copy-success-popup { /* ... styles from reels_feed.html ... */ }
+         /* (All other styles like delete-menu, modals, popups are the same as in reels_feed.html) */
+
+    </style>
+</head>
+<body>
+    <div class="reel-container">
+        <div class="reel-item" data-reel-id="{{ reel_data.reel.id }}">
+            <div class="top-bar">
+                <i class="fas fa-arrow-left back-button" onclick="window.history.back()"></i>
+                <span class="title">الريلز</span>
+                {% if request.user == reel_data.reel.user %}
+                <div class="delete-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                    <div class="delete-dropdown">
+                        <div class="delete-dropdown-item delete" onclick="showDeleteConfirmation({{ reel_data.reel.id }})">حذف الريل</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="video-progress-container">
+                <div class="video-progress-bar"></div>
+            </div>
+            
+            <video class="reel-video" src="{{ reel_data.reel.video.url }}" loop playsinline preload="auto"></video>
+            <div class="play-pause-overlay"><i class="fas fa-play"></i></div>
+            <div class="like-animation-heart"><i class="fas fa-heart"></i></div>
+
+            <div class="reel-overlay">
+                <div></div>
+                <div class="reel-details">
+                    <div class="reel-info">
+                        <div class="reel-user-profile" data-username="{{ reel_data.reel.user.username }}">
+                            <img src="{{ reel_data.reel.user.profile_picture.url|default:'/static/images/default_profile.png' }}" alt="Profile Picture">
+                            <span class="username">{{ reel_data.reel.user.username }}</span>
+                        </div>
+                        {% if reel_data.reel.caption %}
+                            <p class="caption">{{ reel_data.reel.caption }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="reel-actions">
+                        <div class="action-button like-button" data-reel-id="{{ reel_data.reel.id }}">
+                            <i class="{{ reel_data.is_liked_by_user|yesno:'fas,far' }} fa-heart"></i>
+                            <span class="likes-count">{{ reel_data.reel.likes_count }}</span>
+                        </div>
+                        <div class="action-button comment-button" data-reel-id="{{ reel_data.reel.id }}">
+                            <i class="far fa-comment"></i>
+                            <span class="comments-count">{{ reel_data.reel.comments_count }}</span>
+                        </div>
+                        <div class="action-button copy-link-button" data-reel-id="{{ reel_data.reel.id }}">
+                           <i class="fas fa-link"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comments-section" id="comments-{{ reel_data.reel.id }}">
+                <div class="comments-header">
+                    <span>التعليقات ({{ reel_data.reel.comments_count }})</span>
+                    <i class="fas fa-times close-comments"></i>
+                </div>
+                <div class="comments-list">
+                    {% for comment in reel_data.comments_list %}
+                    <div class="comment-item">
+                        <img src="{{ comment.user.profile_picture.url|default:'/static/images/default_profile.png' }}" alt="Profile Picture">
+                        <div class="comment-content">
+                            <span class="comment-username">{{ comment.user.username }}</span>{{ comment.content }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="text-align: center; color: #aaa;">لا توجد تعليقات بعد.</p>
+                    {% endfor %}
+                </div>
+                <form class="comment-form" data-reel-id="{{ reel_data.reel.id }}">
+                    <input type="text" name="content" placeholder="أضف تعليقًا..." required>
+                    <button type="submit">نشر</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const video = document.querySelector('.reel-video');
+        const reelItem = document.querySelector('.reel-item');
+        let clickTimer = null;
+
+        // --- AutoPlay Video ---
+        if (video) {
+            video.play().catch(error => {
+                console.log('Autoplay was prevented. User interaction needed.', error);
+                const playPauseOverlay = reelItem.querySelector('.play-pause-overlay');
+                if (playPauseOverlay) {
+                    playPauseOverlay.classList.add('visible');
+                    playPauseOverlay.querySelector('i').className = 'fas fa-play';
+                }
+            });
+        }
+        
+        // --- Single & Double Click Handlers ---
+        reelItem.addEventListener('click', function() {
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => handleSingleClick(this), 250);
+        });
+        reelItem.addEventListener('dblclick', function() {
+            clearTimeout(clickTimer);
+            handleDoubleClick(this);
+        });
+        
+        // Stop clicks on overlay elements from triggering video pause/play
+        document.querySelectorAll('.reel-overlay, .reel-actions, .reel-user-profile, .comments-section, .top-bar, .video-progress-container, .delete-menu').forEach(el => {
+            el.addEventListener('click', (event) => event.stopPropagation());
+        });
+        
+        function handleSingleClick(item) {
+            const video = item.querySelector('.reel-video');
+            const overlay = item.querySelector('.play-pause-overlay');
+            const icon = overlay.querySelector('i');
+            video.paused ? video.play() : video.pause();
+            icon.className = video.paused ? 'fas fa-play' : 'fas fa-pause';
+            overlay.classList.add('visible');
+            setTimeout(() => overlay.classList.remove('visible'), 700);
+        }
+
+        function handleDoubleClick(item) {
+            const likeButton = item.querySelector('.like-button');
+            const likeIcon = likeButton.querySelector('i');
+            const heartAnimation = item.querySelector('.like-animation-heart');
+            if (!likeIcon.classList.contains('fas')) {
+                likeButton.click();
+            }
+            heartAnimation.classList.add('show');
+            setTimeout(() => heartAnimation.classList.remove('show'), 700);
+        }
+
+        // --- Progress Bar ---
+        const progressBar = document.querySelector('.video-progress-bar');
+        if (video && progressBar) {
+            video.addEventListener('timeupdate', () => {
+                const progress = (video.currentTime / video.duration) * 100;
+                progressBar.style.width = `${progress}%`;
+            });
+            document.querySelector('.video-progress-container').addEventListener('click', function(e) {
+                const rect = this.getBoundingClientRect();
+                video.currentTime = ((e.clientX - rect.left) / rect.width) * video.duration;
+            });
+        }
+
+        // --- CSRF Token ---
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // --- Like Button ---
+        document.querySelector('.like-button').addEventListener('click', function() {
+            const reelId = this.dataset.reelId;
+            fetch(`/reels/${reelId}/like/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.querySelector('i').className = data.liked ? 'fas fa-heart' : 'far fa-heart';
+                this.querySelector('.likes-count').textContent = data.likes_count;
+            });
+        });
+
+        // --- Comments ---
+        document.querySelector('.comment-button').addEventListener('click', function() {
+            document.getElementById('comments-' + this.dataset.reelId).classList.add('active');
+            if(video && !video.paused) video.pause();
+        });
+        document.querySelector('.close-comments').addEventListener('click', function() {
+            this.closest('.comments-section').classList.remove('active');
+             if(video && video.paused) video.play();
+        });
+        document.querySelector('.comment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const reelId = this.dataset.reelId;
+            const input = this.querySelector('input[name="content"]');
+            fetch(`/reels/${reelId}/comment/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `content=${encodeURIComponent(input.value)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                     // (Add new comment to the list dynamically)
+                    input.value = '';
+                    // You can add the logic to dynamically add the new comment here
+                    location.reload(); // Simple reload to see new comment
+                }
+            });
+        });
+        
+        // --- Delete Reel ---
+        function deleteReel(reelId) {
+             fetch(`/reels/${reelId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    alert('تم حذف الريل بنجاح!');
+                    window.location.href = '{% url "reels_feed" %}';
+                } else {
+                    alert('حدث خطأ أثناء الحذف: ' + data.error);
+                }
+            });
+        }
+        
+        // (You need to add the modals and the logic to show them for delete confirmation)
+    });
+    </script>
+</body>
+</html>

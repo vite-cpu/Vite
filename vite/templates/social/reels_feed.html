@@ -1,0 +1,1083 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الريلز - Trimer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .reels-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-snap-stop: always; /* هذا يضمن توقف التمرير عند كل ريـل */
+            scroll-behavior: smooth; /* إضافة هذه السطر لجعل التمرير سلساً */
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+        .reel-item {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            scroll-snap-align: start;
+            background-color: #000;
+            overflow: hidden;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: opacity 0.3s ease;
+        }
+        .reel-item.deleting {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .reel-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .play-pause-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 3;
+            display: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .play-pause-overlay.visible {
+            display: block;
+            opacity: 1;
+        }
+        .play-pause-overlay.hidden {
+            opacity: 0;
+        }
+
+        /* NEW: Like Animation Heart Styles */
+        .like-animation-heart {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 6em;
+            color: rgba(255, 255, 255, 0.9);
+            z-index: 4;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .like-animation-heart.show {
+            animation: like-heart-animation 0.7s ease-in-out;
+        }
+        @keyframes like-heart-animation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            30% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            80% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        /* END NEW */
+
+        .reel-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 30%);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .reel-overlay > * {
+            pointer-events: auto;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 15px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
+        }
+        .top-bar .back-button {
+            color: #fff;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .top-bar .title {
+            color: #fff;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .video-progress-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.3);
+            z-index: 3;
+            cursor: pointer;
+        }
+        .video-progress-bar {
+            height: 100%;
+            background-color: #fff;
+            width: 0%;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+        .video-progress-handle {
+            position: absolute;
+            top: -4px;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            border-radius: 50%;
+            transform: translateX(50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            z-index: 4;
+        }
+        .video-progress-container:hover .video-progress-handle {
+            opacity: 1;
+        }
+        .video-progress-container:hover .video-progress-bar {
+            height: 4px;
+            margin-top: -0.5px;
+        }
+        
+        .reel-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            color: #fff;
+        }
+        .action-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .action-button i {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+        .action-button .fas.fa-heart { /* Updated selector for filled heart */
+            color: red;
+        }
+        .reel-details {
+            padding: 0 15px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            box-sizing: border-box;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        .reel-info {
+            color: #fff;
+            font-size: 0.95em;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+            max-width: 75%;
+        }
+        .reel-user-profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .reel-user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #fff;
+        }
+        .reel-user-profile .username {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #fff;
+        }
+        .reel-info .caption {
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .comments-section {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            max-height: 50vh;
+            overflow-y: auto;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            box-sizing: border-box;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 10;
+        }
+        .comments-section.active {
+            transform: translateY(0);
+        }
+        .comments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .comments-header i {
+            cursor: pointer;
+        }
+        .comment-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .comment-item img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .comment-content {
+            background-color: #333;
+            padding: 8px 12px;
+            border-radius: 15px;
+            flex-grow: 1;
+            font-size: 0.9em;
+        }
+        .comment-content .comment-username {
+            font-weight: bold;
+            margin-right: 5px;
+            color: #ccc;
+        }
+        .comment-form {
+            display: flex;
+            margin-top: 15px;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+        }
+        .comment-form input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #555;
+            background-color: #222;
+            color: #fff;
+            margin-right: 10px;
+        }
+        .comment-form button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .comment-form button:hover {
+            background-color: #0056b3;
+        }
+        
+        .delete-menu {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            padding: 15px;
+            margin: -15px -15px -15px 0;
+        }
+        .delete-menu i {
+            pointer-events: none;
+        }
+        .delete-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            padding: 10px 0;
+            min-width: 150px;
+            display: none;
+            z-index: 20;
+        }
+        .delete-dropdown-item {
+            padding: 12px 20px;
+            font-size: 1.1em;
+        }
+        .delete-dropdown.show {
+            display: block;
+        }
+        .delete-dropdown-item {
+            padding: 8px 15px;
+            color: white;
+            text-align: right;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .delete-dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .delete-dropdown-item.delete {
+            color: #ff4d4d;
+        }
+        
+        .delete-loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.5em;
+            flex-direction: column;
+        }
+        .delete-loading i {
+            margin-bottom: 10px;
+        }
+
+        .confirmation-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .confirmation-modal-content {
+            background-color: #222;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 350px;
+            width: 90%;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .confirmation-modal-content h3 {
+            margin-top: 0;
+            color: #fff;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+        }
+        .confirmation-modal-content p {
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+        .confirmation-modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+        }
+        .confirmation-modal-buttons button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            flex: 1;
+        }
+        .confirmation-modal-buttons button:active {
+            transform: scale(0.98);
+        }
+        .confirmation-modal-buttons .confirm-button {
+            background-color: #ff4d4d;
+            color: #fff;
+        }
+        .confirmation-modal-buttons .confirm-button:hover {
+            background-color: #e60000;
+        }
+        .confirmation-modal-buttons .cancel-button {
+            background-color: #444;
+            color: #fff;
+        }
+        .confirmation-modal-buttons .cancel-button:hover {
+            background-color: #555;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* START: Style for the new beautiful copy link popup */
+        .copy-success-popup {
+            position: fixed;
+            bottom: -100px; /* Start off-screen */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(40, 167, 69, 0.95);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .copy-success-popup.show {
+            bottom: 50px; /* Slide in */
+            opacity: 1;
+        }
+        .copy-success-popup i {
+            margin-left: 10px; /* Changed to margin-left for Arabic RTL layout */
+            font-size: 1.2em;
+        }
+        /* END: Style for the new beautiful copy link popup */
+
+    </style>
+</head>
+<body>
+    <div class="reels-container">
+        {% for data in reels_data %}
+        <div class="reel-item" data-reel-id="{{ data.reel.id }}">
+            <div class="top-bar">
+                <i class="fas fa-arrow-left back-button" onclick="window.location.href = '/home'"></i>
+                <span class="title">الريلز</span>
+                <span></span> 
+            </div>
+            
+            <div class="video-progress-container">
+                <div class="video-progress-bar"></div>
+                <div class="video-progress-handle"></div>
+            </div>
+            
+            {% if request.user == data.reel.user %}
+            <div class="delete-menu">
+                <i class="fas fa-ellipsis-v"></i>
+                <div class="delete-dropdown">
+                    <div class="delete-dropdown-item delete" onclick="showDeleteConfirmation({{ data.reel.id }})">حذف الريل</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <video class="reel-video" src="{{ data.reel.video.url }}" loop playsinline preload="auto" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+            <div class="play-pause-overlay"><i class="fas fa-play"></i></div>
+            
+            <div class="like-animation-heart"><i class="fas fa-heart"></i></div>
+
+            <div class="reel-overlay">
+                <div></div>
+                
+                <div class="reel-details">
+                    <div class="reel-info">
+                        <div class="reel-user-profile" data-username="{{ data.reel.user.username }}">
+                            <img src="{{ data.reel.user.profile_picture.url|default:'/static/images/default_profile.png' }}" alt="{{ data.reel.user.username }} Profile Picture">
+                            <span class="username">{{ data.reel.user.username }}</span>
+                        </div>
+                        
+                        {% if data.reel.caption %}
+                            <p class="caption">{{ data.reel.caption }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="reel-actions">
+                        <div class="action-button like-button" data-reel-id="{{ data.reel.id }}">
+                            <i class="{{ data.is_liked_by_user|yesno:'fas,far' }} fa-heart"></i>
+                            <span class="likes-count">{{ data.reel.likes_count }}</span>
+                        </div>
+                        <div class="action-button comment-button" data-reel-id="{{ data.reel.id }}">
+                            <i class="far fa-comment"></i>
+                            <span class="comments-count">{{ data.reel.comments_count }}</span>
+                        </div>
+                        <div class="action-button view-count-button" style="cursor: default;">
+                            <i class="far fa-eye"></i>
+                            <span class="views-count">{{ data.reel.views_count }}</span>
+                        </div>
+                        <div class="action-button copy-link-button" data-reel-id="{{ data.reel.id }}">
+                            <i class="fas fa-link"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comments-section" id="comments-{{ data.reel.id }}">
+                <div class="comments-header">
+                    <span>التعليقات ({{ data.reel.comments_count }})</span>
+                    <i class="fas fa-times close-comments"></i>
+                </div>
+                <div class="comments-list">
+                    {% for comment in data.comments_list %}
+                    <div class="comment-item">
+                        <img src="{{ comment.user.profile_picture.url|default:'/static/images/default_profile.png' }}" alt="{{ comment.user.username }} Profile Picture">
+                        <div class="comment-content">
+                            <span class="comment-username">{{ comment.user.username }}</span>{{ comment.content }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="text-align: center; color: #aaa;">لا توجد تعليقات بعد.</p>
+                    {% endfor %}
+                </div>
+                <form class="comment-form" data-reel-id="{{ data.reel.id }}">
+                    <input type="text" name="content" placeholder="أضف تعليقًا..." required>
+                    <button type="submit">نشر</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div style="width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+             <div class="top-bar" style="position: absolute; top:0; left: 0; width: 100%;">
+                <i class="fas fa-arrow-left back-button" onclick="window.location.href = '/home'"></i>
+                <span class="title">الريلز</span>
+                <span></span> 
+            </div>
+            <p style="text-align: center; color: #fff;">لا توجد ريلز لعرضها حاليًا.</p>
+        </div>
+        {% endfor %}
+        
+        <div class="delete-loading" id="delete-loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>جاري الحذف...</span>
+        </div>
+    </div>
+
+    <div class="confirmation-modal-overlay" id="delete-confirmation-modal">
+        <div class="confirmation-modal-content">
+            <h3>تأكيد الحذف</h3>
+            <p>هل أنت متأكد أنك تريد حذف هذا الريل بشكل دائم؟</p>
+            <div class="confirmation-modal-buttons">
+                <button class="confirm-button" id="confirm-delete-button">حذف</button>
+                <button class="cancel-button" id="cancel-delete-button">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="copy-success-popup" id="copy-success-popup">
+        <span>تم نسخ الرابط بنجاح!</span>
+        <i class="fas fa-check-circle"></i>
+    </div>
+    <script>
+        const reelsContainer = document.querySelector('.reels-container');
+        const reelItems = document.querySelectorAll('.reel-item');
+        let currentPlayingVideo = null;
+        let clickTimer = null; // NEW: Timer to differentiate single/double clicks
+        const viewedReels = new Set(); // To track reels viewed in this session
+
+        // Stop clicks on overlay elements from triggering video pause/play
+        document.querySelectorAll('.reel-overlay, .reel-actions, .reel-user-profile, .comments-section, .top-bar, .video-progress-container, .delete-menu').forEach(el => {
+            el.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+        });
+
+        // Update progress bar for videos
+        function setupVideoProgress(video, progressBar, progressHandle) {
+            const updateProgress = () => {
+                if (video.duration) {
+                    const progress = (video.currentTime / video.duration) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
+            };
+            const seekVideo = (e) => {
+                const rect = progressBar.parentElement.getBoundingClientRect();
+                const seekPercentage = (e.clientX - rect.left) / rect.width;
+                video.currentTime = seekPercentage * video.duration;
+            };
+            video.addEventListener('timeupdate', updateProgress);
+            progressBar.parentElement.addEventListener('click', seekVideo);
+        }
+
+        function initializeProgressBars() {
+            document.querySelectorAll('.reel-item').forEach(item => {
+                const video = item.querySelector('.reel-video');
+                const progressBar = item.querySelector('.video-progress-bar');
+                const progressHandle = item.querySelector('.video-progress-handle');
+                
+                if (video && progressBar && progressHandle) {
+                    setupVideoProgress(video, progressBar, progressHandle);
+                }
+            });
+        }
+
+        const observerOptions = {
+            root: reelsContainer,
+            rootMargin: '0px',
+            threshold: 0.85 // زيادة هذه القيمة تجعل التمرير يتطلب رؤية جزء أكبر من الريل التالي
+        };
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // New function to record view
+        function recordView(reelId) {
+            if (viewedReels.has(reelId)) {
+                return; // Already recorded a view for this reel in this session
+            }
+
+            fetch(`/reels/${reelId}/view/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    viewedReels.add(reelId);
+                    const viewCountElement = document.querySelector(`.reel-item[data-reel-id="${reelId}"] .views-count`);
+                    if (viewCountElement) {
+                        viewCountElement.textContent = data.views_count;
+                    }
+                }
+            })
+            .catch(error => console.error('Error recording view:', error));
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target.querySelector('.reel-video');
+                if (!video) return;
+
+                const playPauseOverlay = entry.target.querySelector('.play-pause-overlay');
+                const progressBar = entry.target.querySelector('.video-progress-bar');
+                const reelId = entry.target.dataset.reelId;
+
+                if (entry.isIntersecting) {
+                    if (currentPlayingVideo && currentPlayingVideo !== video) {
+                        currentPlayingVideo.pause();
+                        const prevOverlay = currentPlayingVideo.closest('.reel-item').querySelector('.play-pause-overlay');
+                        if (prevOverlay) prevOverlay.classList.remove('visible');
+                        const prevProgressBar = currentPlayingVideo.closest('.reel-item').querySelector('.video-progress-bar');
+                        if (prevProgressBar) prevProgressBar.style.width = '0%';
+                    }
+                    
+                    video.play().catch(error => {
+                        console.log('Autoplay was prevented:', error);
+                        if (playPauseOverlay) {
+                            playPauseOverlay.classList.add('visible');
+                            playPauseOverlay.querySelector('i').className = 'fas fa-play';
+                        }
+                    });
+                    currentPlayingVideo = video;
+                    if (playPauseOverlay) playPauseOverlay.classList.remove('visible');
+
+                    // Record view after a short delay to ensure user actually watched it
+                    setTimeout(() => {
+                        // Check again if it's still intersecting before recording
+                        if (entry.isIntersecting) {
+                            recordView(reelId);
+                        }
+                    }, 2000); // Record after 2 seconds of being visible
+
+                } else {
+                    video.pause();
+                    if (playPauseOverlay) playPauseOverlay.classList.remove('visible');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+            });
+        }, observerOptions);
+
+        reelItems.forEach(item => {
+            if (item.querySelector('.reel-video')) {
+                observer.observe(item);
+
+                // --- START: REVISED CLICK/DBLCLICK LOGIC ---
+                item.addEventListener('click', function() {
+                    clearTimeout(clickTimer); // Clear previous timer
+                    clickTimer = setTimeout(() => {
+                        // This will only run if no second click occurs within 250ms
+                        handleSingleClick(this);
+                    }, 250);
+                });
+
+                item.addEventListener('dblclick', function() {
+                    clearTimeout(clickTimer); // Cancel the pending single-click action
+                    handleDoubleClick(this); // Execute the double-click action immediately
+                });
+                // --- END: REVISED CLICK/DBLCLICK LOGIC ---
+            }
+        });
+        
+        // Function to handle single click (play/pause)
+        function handleSingleClick(reelItem) {
+            const video = reelItem.querySelector('.reel-video');
+            const playPauseOverlay = reelItem.querySelector('.play-pause-overlay');
+            const icon = playPauseOverlay.querySelector('i');
+            let playPauseTimeout;
+
+            if (video.paused) {
+                video.play();
+                icon.className = 'fas fa-pause';
+            } else {
+                video.pause();
+                icon.className = 'fas fa-play';
+            }
+
+            playPauseOverlay.classList.add('visible');
+            playPauseOverlay.classList.remove('hidden');
+
+            playPauseTimeout = setTimeout(() => {
+                playPauseOverlay.classList.add('hidden');
+                const transitionEndHandler = () => {
+                    playPauseOverlay.classList.remove('visible', 'hidden');
+                    playPauseOverlay.removeEventListener('transitionend', transitionEndHandler);
+                };
+                playPauseOverlay.addEventListener('transitionend', transitionEndHandler);
+            }, 700);
+        }
+
+        // Function to handle double click (like)
+        function handleDoubleClick(reelItem) {
+            const likeButton = reelItem.querySelector('.like-button');
+            const likeIcon = likeButton.querySelector('i');
+            const heartAnimation = reelItem.querySelector('.like-animation-heart');
+
+            // Only trigger the like action if the post is not already liked
+            if (!likeIcon.classList.contains('fas')) {
+                likeButton.click();
+            }
+
+            // Show animation regardless
+            heartAnimation.classList.add('show');
+            setTimeout(() => {
+                heartAnimation.classList.remove('show');
+            }, 700);
+        }
+
+        if (reelItems.length > 0 && reelItems[0].querySelector('.reel-video')) {
+            setTimeout(() => {
+                const firstVideo = reelItems[0].querySelector('.reel-video');
+                if (firstVideo && firstVideo.paused) {
+                    firstVideo.play().catch(error => console.log('Initial autoplay was prevented:', error));
+                    currentPlayingVideo = firstVideo;
+                }
+            }, 150);
+        }
+
+        document.querySelectorAll('.like-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const reelId = this.dataset.reelId;
+                const icon = this.querySelector('i');
+                const likesCountSpan = this.querySelector('.likes-count');
+
+                fetch(`/reels/${reelId}/like/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    icon.className = data.liked ? 'fas fa-heart' : 'far fa-heart';
+                    likesCountSpan.textContent = data.likes_count;
+                })
+                .catch(error => console.error('Error liking reel:', error));
+            });
+        });
+
+        document.querySelectorAll('.comment-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const reelId = this.dataset.reelId;
+                const commentsSection = document.getElementById(`comments-${reelId}`);
+                if (commentsSection) {
+                    commentsSection.classList.add('active');
+                    if (currentPlayingVideo) {
+                        currentPlayingVideo.pause();
+                        const overlay = currentPlayingVideo.closest('.reel-item').querySelector('.play-pause-overlay');
+                        if(overlay) {
+                           overlay.classList.add('visible');
+                           overlay.querySelector('i').className = 'fas fa-play';
+                        }
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.close-comments').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.comments-section').classList.remove('active');
+                if (currentPlayingVideo && currentPlayingVideo.closest('.reel-item').getBoundingClientRect().top >= 0) {
+                     currentPlayingVideo.play().catch(e => console.log(e));
+                     const overlay = currentPlayingVideo.closest('.reel-item').querySelector('.play-pause-overlay');
+                     if (overlay) overlay.classList.remove('visible');
+                }
+            });
+        });
+
+        document.querySelectorAll('.comment-form').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const reelId = this.dataset.reelId;
+                const commentInput = this.querySelector('input[name="content"]');
+                const commentContent = commentInput.value.trim();
+                const commentsList = this.closest('.comments-section').querySelector('.comments-list');
+                const commentsCountSpan = document.querySelector(`.reel-item[data-reel-id="${reelId}"] .comments-count`);
+                const commentsHeaderSpan = this.closest('.comments-section').querySelector('.comments-header span');
+
+                if (!commentContent) return;
+
+                fetch(`/reels/${reelId}/comment/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `content=${encodeURIComponent(commentContent)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const noCommentsMessage = commentsList.querySelector('p');
+                        if (noCommentsMessage) noCommentsMessage.remove();
+
+                        const newCommentHtml = `
+                            <div class="comment-item">
+                                <img src="${data.comment.user.profile_picture_url}" alt="${data.comment.user.username} Profile Picture">
+                                <div class="comment-content">
+                                    <span class="comment-username">${data.comment.user.username}</span>${data.comment.content}
+                                </div>
+                            </div>
+                        `;
+                        commentsList.insertAdjacentHTML('afterbegin', newCommentHtml);
+                        commentsCountSpan.textContent = data.comments_count;
+                        commentsHeaderSpan.textContent = `التعليقات (${data.comments_count})`;
+                        commentInput.value = '';
+                    } else {
+                        alert(data.error || 'Error adding comment.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+        
+        // START: REVISED copy link functionality
+        document.querySelectorAll('.copy-link-button').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const reelId = this.dataset.reelId;
+                const reelUrl = `${window.location.origin}/reels/view/${reelId}/`; 
+                const popup = document.getElementById('copy-success-popup');
+
+                // Check for Clipboard API support
+                if (!navigator.clipboard) {
+                    alert("متصفحك لا يدعم خاصية النسخ التلقائي.");
+                    return;
+                }
+
+                navigator.clipboard.writeText(reelUrl).then(() => {
+                    // Show the beautiful popup
+                    if (popup) {
+                        popup.classList.add('show');
+                        // Hide the popup after a delay
+                        setTimeout(() => {
+                            popup.classList.remove('show');
+                        }, 2500); // Keep it visible for 2.5 seconds
+                    }
+                }).catch(err => {
+                    console.error('Failed to copy link: ', err);
+                    alert('فشل نسخ الرابط إلى الحافظة.');
+                });
+            });
+        });
+        // END: REVISED copy link functionality
+
+        document.querySelectorAll('.reel-user-profile').forEach(header => {
+            header.addEventListener('click', function() {
+                const username = this.dataset.username;
+                if (username) window.location.href = `/profile/${username}/`;
+            });
+        });
+
+        let reelToDeleteId = null;
+
+        function showDeleteConfirmation(reelId) {
+            reelToDeleteId = reelId;
+            document.getElementById('delete-confirmation-modal').style.display = 'flex';
+            document.querySelectorAll('.delete-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        }
+
+        document.getElementById('confirm-delete-button').addEventListener('click', function() {
+            if (reelToDeleteId) {
+                deleteReel(reelToDeleteId);
+                reelToDeleteId = null;
+            }
+            document.getElementById('delete-confirmation-modal').style.display = 'none';
+        });
+
+        document.getElementById('cancel-delete-button').addEventListener('click', function() {
+            reelToDeleteId = null;
+            document.getElementById('delete-confirmation-modal').style.display = 'none';
+        });
+
+        function deleteReel(reelId) {
+            const reelElement = document.querySelector(`.reel-item[data-reel-id="${reelId}"]`);
+            const loadingIndicator = document.getElementById('delete-loading');
+            
+            if (reelElement) reelElement.classList.add('deleting');
+            loadingIndicator.style.display = 'flex';
+
+            fetch(`/reels/${reelId}/delete/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+            })
+            .then(response => response.ok ? response.json() : Promise.reject('Network response was not ok.'))
+            .then(data => {
+                if (data.success) {
+                    if (reelElement) {
+                        reelElement.remove();
+                        if (document.querySelectorAll('.reel-item').length === 0) {
+                            window.location.reload();
+                        } else if (currentPlayingVideo === reelElement.querySelector('.reel-video')) {
+                            const nextReel = document.querySelector('.reel-item .reel-video');
+                            if (nextReel) {
+                                nextReel.play().catch(e => console.log('Autoplay after delete was prevented:', e));
+                                currentPlayingVideo = nextReel;
+                            } else {
+                                currentPlayingVideo = null;
+                            }
+                        }
+                    }
+                } else {
+                    alert(data.error || 'حدث خطأ أثناء محاولة حذف الريل');
+                    if (reelElement) reelElement.classList.remove('deleting');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ غير متوقع أثناء محاولة حذف الريل');
+                if (reelElement) reelElement.classList.remove('deleting');
+            })
+            .finally(() => {
+                loadingIndicator.style.display = 'none';
+            });
+        }
+
+        document.querySelectorAll('.delete-menu').forEach(menu => {
+            const dropdown = menu.querySelector('.delete-dropdown');
+            menu.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.delete-dropdown').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('show');
+                });
+                dropdown.classList.toggle('show');
+            });
+        });
+
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.delete-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        });
+
+        initializeProgressBars();
+        reelsContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = Math.sign(e.deltaY) * 20; // تقليل قيمة التمرير
+            reelsContainer.scrollBy({
+                top: delta,
+                behavior: 'smooth'
+            });
+        }, { passive: false });
+        // بدلاً من استخدام Set محلي، سنعتمد على الخادم للتحقق
+function recordView(reelId) {
+    fetch(`/reels/${reelId}/view/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.is_new_view) {
+            const viewCountElement = document.querySelector(`.reel-item[data-reel-id="${reelId}"] .views-count`);
+            if (viewCountElement) {
+                viewCountElement.textContent = data.views_count;
+            }
+        }
+    })
+    .catch(error => console.error('Error recording view:', error));
+}
+</script>    
+</html>

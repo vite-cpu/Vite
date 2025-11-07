@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="screen-orientation" content="portrait-primary">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trimer</title>
+    <style>
+        /* ✅ إعدادات الصفحة بالوضع الغامق */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #121212; /* لون خلفية غامق */
+            color: #ffffff; /* لون النص الأبيض للوضوح */
+            font-family: Arial, sans-serif;
+            text-align: center;
+            flex-direction: column;
+        }
+
+        /* ✅ إعدادات الشعار الأبيض */
+        img {
+            width: 150px;
+            margin-bottom: 20px;
+            filter: brightness(0) invert(1); /* تحويل الشعار إلى أبيض */
+        }
+
+        /* ✅ تأثير الكتابة */
+        .typing-effect::after {
+            content: "|";
+            display: inline-block;
+            animation: blink 0.7s infinite;
+            font-weight: bold;
+            color: #ffffff; /* لون المؤشر */
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* إعدادات النص */
+        .typing-effect, h3 {
+            font-weight: bold;
+            color: #ffffff; /* لون النص الأبيض */
+            text-shadow: 0 0 5px rgba(255,255,255,0.3); /* إضافة ظل خفيف للنص */
+        }
+
+        h3 {
+            font-size: 24px; /* حجم أكبر للنص الرئيسي */
+            margin-top: 15px;
+        }
+        /* منع تدوير الصفحة */
+@media screen and (min-width: 320px) and (max-width: 767px) and (orientation: landscape) {
+    html {
+        transform: rotate(-90deg);
+        transform-origin: left top;
+        width: 100vh;
+        height: 100vw;
+        overflow-x: hidden;
+        position: absolute;
+        top: 100%;
+        left: 0;
+    }
+    body {
+        /* تأكد من أن العناصر لا تتأثر بالتدوير */
+        touch-action: pan-x pan-y;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- ✅ الشعار الأبيض -->
+    <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/1000084215-removebg-preview.png" alt="شعار Trimer">
+    
+    <!-- ✅ النص مع تأثير الكتابة -->
+    <h4 class="typing-effect"></h4>
+
+    <!-- ✅ سكريبت التوجيه بعد 3 ثوانٍ -->
+    <script>
+        const text = "from salem ahmed";
+        let index = 0;
+        function typeEffect() {
+            if (index < text.length) {
+                document.querySelector(".typing-effect").textContent += text.charAt(index);
+                index++;
+                setTimeout(typeEffect, 100);
+            }
+        }
+        typeEffect(); // تشغيل التأثير عند تحميل الصفحة
+
+        setTimeout(function() {
+            window.location.href = "{% url 'home' %}"; // تأكد أن 'home' هو اسم الصفحة الرئيسية
+        }, 3000);
+    </script>
+    <script>
+// منع تدوير الشاشة على الأجهزة المحمولة
+function lockOrientation() {
+    if (window.screen.orientation && window.screen.orientation.lock) {
+        window.screen.orientation.lock('portrait').catch(function(error) {
+            console.log('Orientation lock failed: ', error);
+        });
+    } else if (window.screen.lockOrientation) {
+        window.screen.lockOrientation('portrait');
+    } else if (window.screen.mozLockOrientation) {
+        window.screen.mozLockOrientation('portrait');
+    } else if (window.screen.msLockOrientation) {
+        window.screen.msLockOrientation('portrait');
+    }
+}
+
+// استدعاء الدالة عند تحميل الصفحة وعند تغيير الحجم
+window.addEventListener('load', lockOrientation);
+window.addEventListener('resize', lockOrientation);
+</script>
+    <h3>Trimer</h3>
+</body>
+</html>

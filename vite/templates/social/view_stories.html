@@ -1,0 +1,670 @@
+{% extends 'social/base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    body,
+    html {
+        background-color: #000;
+        overflow: hidden;
+    }
+
+    .story-viewer-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    }
+
+    .story-viewer-wrapper {
+        position: relative;
+        max-width: 450px;
+        width: 90%;
+        aspect-ratio: 9 / 16;
+        background-color: #111;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .story-content {
+        display: none; /* Hide all stories by default */
+        height: 100%;
+        width: 100%;
+        flex-direction: column;
+        position: relative; /* Needed for the feedback icon */
+    }
+
+    .story-content.active {
+        display: flex; /* Show only the active story */
+    }
+
+    .story-media {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        flex-grow: 1;
+        cursor: pointer;
+    }
+
+    /* --- Progress Bar --- */
+    .stories-progress-bar {
+        position: absolute;
+        top: 5px;
+        left: 10px;
+        right: 10px;
+        display: flex;
+        gap: 4px;
+        z-index: 2010;
+    }
+
+    .progress-item {
+        flex-grow: 1;
+        height: 3px;
+        background-color: rgba(255, 255, 255, 0.4);
+        border-radius: 3px;
+    }
+
+    .progress-item.active {
+        background-color: white;
+    }
+
+    /* --- Story Header --- */
+    .story-header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 15px;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Pushes items to edges */
+        z-index: 2005;
+        direction: ltr; /* Ensure LTR for layout */
+    }
+
+    .story-header-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .story-header-userinfo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .story-header-userinfo img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        order: -1; /* Make image appear before username */
+    }
+
+    .story-header-userinfo .username {
+        font-weight: bold;
+    }
+
+    .story-control-btn {
+        font-size: 1.8rem;
+        color: white;
+        text-decoration: none;
+        line-height: 1;
+        opacity: 0.8;
+        background: none;
+        border: none;
+        cursor: pointer;
+        /* MODIFICATION: Increased padding for better touch target */
+        padding: 10px; 
+    }
+    .story-control-btn:hover {
+        opacity: 1;
+    }
+    .delete-story-btn {
+        font-weight: bold;
+    }
+    
+    /* --- Footer --- */
+    .story-footer {
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        direction: ltr;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 2005;
+    }
+
+    .like-button {
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: #e0e0e0;
+        transition: color 0.2s, transform 0.2s;
+        /* MODIFICATION: Increased padding for better touch target */
+        padding: 10px;
+    }
+
+    .like-button.liked {
+        color: #ff4757;
+        transform: scale(1.1);
+    }
+
+    .likes-count {
+        color: #e0e0e0;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    /* --- Navigation Buttons --- */
+    .story-nav-button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(0, 0, 0, 0.3);
+        color: white;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 15px 5px;
+        z-index: 2001;
+        display: none;
+    }
+    
+    .story-nav-button.prev {
+        left: 5px;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .story-nav-button.next {
+        right: 5px;
+        border-radius: 8px 0 0 8px;
+    }
+
+    .story-viewer-wrapper:hover .story-nav-button {
+        display: block;
+    }
+
+    /* --- Double-click Like Feedback --- */
+    .like-feedback-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        font-size: 6rem;
+        color: rgba(255, 255, 255, 0.85);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 2002;
+        pointer-events: none;
+    }
+
+    .like-feedback-icon.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* --- Mute/Unmute Button --- */
+    .story-mute-toggle-btn {
+        position: absolute;
+        bottom: 15px;
+        right: 15px;
+        z-index: 2006;
+        background: rgba(0, 0, 0, 0.4);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+    .story-mute-toggle-btn:hover {
+        background: rgba(0, 0, 0, 0.6);
+    }
+    
+    /* --- Custom Glassmorphism Confirmation Dialog --- */
+    .confirm-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none; /* Hidden by default */
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        backdrop-filter: blur(5px);
+        direction: rtl; /* For arabic content */
+    }
+
+    .confirm-dialog-box {
+        background: rgba(40, 40, 40, 0.7);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 25px;
+        width: 90%;
+        max-width: 350px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        transform: scale(0.9);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .confirm-dialog-overlay.show .confirm-dialog-box {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    .confirm-dialog-box h3 {
+        margin-top: 0;
+        font-size: 1.4rem;
+    }
+    .confirm-dialog-box p {
+        margin-bottom: 20px;
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    .dialog-error-message {
+        color: #ffc0cb; /* Light pink for error */
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+        min-height: 1.2em; /* Reserve space */
+    }
+    .confirm-dialog-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .confirm-dialog-buttons button {
+        flex-grow: 1;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .confirm-btn-delete {
+        background-color: #e74c3c;
+        color: white;
+    }
+    .confirm-btn-delete:hover {
+        background-color: #c0392b;
+    }
+    .confirm-btn-delete:disabled {
+        opacity: 0.7;
+        cursor: wait;
+    }
+    .confirm-btn-cancel {
+        background-color: #555;
+        color: white;
+    }
+    .confirm-btn-cancel:hover {
+        background-color: #666;
+    }
+    .confirm-btn-cancel:disabled {
+        opacity: 0.7;
+        cursor: wait;
+    }
+
+    /* --- Spinner for Loading Indicator --- */
+    .btn-spinner {
+        display: none; /* Hidden by default */
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-left: 8px;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+</style>
+
+<div class="story-viewer-container" id="storyViewer">
+    {% if stories %}
+    <div class="story-viewer-wrapper">
+        <div class="stories-progress-bar">
+            {% for story in stories %}
+            <div class="progress-item" data-story-id="{{ story.id }}"></div>
+            {% endfor %}
+        </div>
+        
+        {% for story in stories %}
+        <div class="story-content {% if forloop.first %}active{% endif %}" data-story-index="{{ forloop.counter0 }}">
+            <div class="story-header">
+                <div class="story-header-controls">
+                    <a href="{% url 'home' %}" class="story-control-btn">&times;</a>
+                     {% if request.user == story_user %}
+                        <button class="story-control-btn delete-story-btn" data-story-id="{{ story.id }}" title="حذف القصة">&#8942;</button>
+                    {% endif %}
+                </div>
+                <div class="story-header-userinfo">
+                    <div class="username">@{{ story_user.username }}</div>
+                    <img src="{{ story_user.profile_picture.url|default:'/static/images/default_profile.png' }}" alt="">
+                </div>
+            </div>
+            
+            <i class="fas fa-heart like-feedback-icon"></i>
+            
+            {% if story.video %}
+                <button class="story-mute-toggle-btn">
+                    <i class="fas fa-volume-mute"></i>
+                </button>
+                <video src="{{ story.video.url }}" 
+                       class="story-media" 
+                       poster="{{ story_user.profile_picture.url|default:'/static/images/default_profile.png' }}"
+                       playsinline 
+                       data-story-id="{{ story.id }}">
+                </video>
+            {% elif story.image %}
+                <img src="{{ story.image.url }}" class="story-media" alt="Story by @{{ story_user.username }}">
+            {% endif %}
+
+            <div class="story-footer">
+                {# FIX 1: Pass story.id to the url tag #}
+                {# FIX 2: Check for story.is_liked which is annotated in the view #}
+                <button class="like-button {% if story.is_liked %}liked{% endif %}" 
+                        data-story-id="{{ story.id }}" 
+                        data-like-url="{% url 'like_story' story_id=story.id %}">
+                    <i class="fas fa-heart"></i>
+                </button>
+                
+                {# The like_story view returns 'likes_count', which the JS will use to update this span. #}
+                {# The initial count comes from the model property. #}
+                <span class="likes-count" id="likes-count-{{ story.id }}">{{ story.likes_count }}</span>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button class="story-nav-button prev" id="prevStoryBtn" style="display: none;">&#10094;</button>
+        <button class="story-nav-button next" id="nextStoryBtn">&#10095;</button>
+
+    </div>
+    {% else %}
+    <div class="text-light text-center">
+        <p>لا توجد قصة لعرضها.</p>
+        <a href="{% url 'home' %}" class="btn btn-outline-light mt-3">العودة للرئيسية</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="confirm-dialog-overlay" id="customConfirm" data-delete-url-template="{% url 'delete_story' 0 %}">
+    <div class="confirm-dialog-box">
+        <h3>تأكيد الحذف</h3>
+        <p>هل أنت متأكد من رغبتك في حذف هذه القصة؟ لا يمكن التراجع عن هذا الإجراء.</p>
+        <p class="dialog-error-message" id="dialogError"></p>
+        <div class="confirm-dialog-buttons">
+            <button class="confirm-btn-cancel" id="confirmCancel">إلغاء</button>
+            <button class="confirm-btn-delete" id="confirmDelete">
+                <span class="btn-text">حذف</span>
+                <span class="btn-spinner"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stories = document.querySelectorAll('.story-content');
+    if (stories.length === 0) return;
+
+    let currentStoryIndex = 0;
+    const totalStories = stories.length;
+    const nextBtn = document.getElementById('nextStoryBtn');
+    const prevBtn = document.getElementById('prevStoryBtn');
+    const progressItems = document.querySelectorAll('.progress-item');
+    const csrfToken = getCookie('csrftoken');
+
+    function getCookie(name) {
+        if (document.cookie && document.cookie !== '') {
+            for (const cookie of document.cookie.split(';')) {
+                const [key, value] = cookie.trim().split('=').map(decodeURIComponent);
+                if (key === name) return value;
+            }
+        }
+        return null;
+    }
+
+    function showStory(index) {
+        document.querySelectorAll('.story-media[data-story-id]').forEach(media => {
+            if (media.tagName === 'VIDEO') media.pause();
+        });
+
+        stories.forEach((story, i) => story.classList.toggle('active', i === index));
+        progressItems.forEach((item, i) => item.classList.toggle('active', i === index));
+        
+        const activeStory = stories[index];
+        const activeMedia = activeStory.querySelector('.story-media[data-story-id]');
+        
+        if (activeMedia && activeMedia.tagName === 'VIDEO') {
+            activeMedia.currentTime = 0;
+            activeMedia.muted = true;
+            const muteBtnIcon = activeStory.querySelector('.story-mute-toggle-btn i');
+            if (muteBtnIcon) {
+                muteBtnIcon.classList.remove('fa-volume-up');
+                muteBtnIcon.classList.add('fa-volume-mute');
+            }
+            let playPromise = activeMedia.play();
+            if (playPromise !== undefined) { playPromise.catch(error => {}); }
+        }
+
+        prevBtn.style.display = index > 0 ? 'block' : 'none';
+        nextBtn.style.display = index < totalStories - 1 ? 'block' : 'none';
+        currentStoryIndex = index;
+    }
+    
+    // --- Like Button Logic ---
+    // MODIFICATION: Completed the like logic using 'touchstart' for mobile.
+    document.querySelectorAll('.like-button').forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // Prevents emulated click
+            e.stopPropagation(); // Prevents event from bubbling to parent (dblclick)
+
+            const storyId = this.dataset.storyId;
+            const likeUrl = this.dataset.likeUrl;
+            const likesCountSpan = document.getElementById(`likes-count-${storyId}`);
+            const isLiked = this.classList.contains('liked');
+
+            // Optimistic UI update
+            // this.classList.toggle('liked'); // Removed for precise control below
+            let currentLikes = parseInt(likesCountSpan.textContent);
+            // likesCountSpan.textContent = isLiked ? currentLikes - 1 : currentLikes + 1; // Removed for precise control below
+            
+            fetch(likeUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ story_id: storyId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Server-side validation
+                if (data.status === 'ok') {
+                    // Correctly update UI based on server response
+                    this.classList.toggle('liked', data.liked);
+                    likesCountSpan.textContent = data.likes_count;
+                } else {
+                    // Revert UI on failure (e.g., server returned 'error' status)
+                    // The UI was not optimistically updated here, so no need to revert unless
+                    // you choose to do an optimistic update THEN revert.
+                    // If you want optimistic, uncomment the above lines and uncomment the revert here.
+                    console.error('Like action failed on server:', data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                // Revert UI on network error
+                // Again, if you had optimistic updates uncommented, you'd revert here.
+                console.error('Like action failed (network/parsing):', error);
+            });
+        });
+    });
+
+    // Double click to like
+    stories.forEach(storyContent => {
+        storyContent.addEventListener('dblclick', function(e) {
+            const likeButton = this.querySelector('.like-button');
+            const feedbackIcon = this.querySelector('.like-feedback-icon');
+
+            // Only trigger like if the target is not the button itself
+            if (!e.target.closest('.like-button') && likeButton) { // Removed !likeButton.classList.contains('liked') to allow unliking
+                 // Use touchstart to trigger the like logic consistently
+                likeButton.dispatchEvent(new Event('touchstart', { bubbles: true }));
+            }
+            if (feedbackIcon) {
+                feedbackIcon.classList.add('show');
+                setTimeout(() => { feedbackIcon.classList.remove('show'); }, 800);
+            }
+        });
+    });
+
+    // Mute/Unmute Logic
+    document.querySelectorAll('.story-mute-toggle-btn').forEach(button => {
+        button.addEventListener('click', function(e) { // Click is fine here
+            e.stopPropagation();
+            const storyContent = this.closest('.story-content');
+            const video = storyContent.querySelector('video.story-media');
+            const icon = this.querySelector('i');
+
+            if (video) {
+                video.muted = !video.muted;
+                icon.classList.toggle('fa-volume-mute', video.muted);
+                icon.classList.toggle('fa-volume-up', !video.muted);
+            }
+        });
+    });
+
+    // --- Story Deletion Logic ---
+    const confirmDialog = document.getElementById('customConfirm');
+    const confirmDeleteBtn = document.getElementById('confirmDelete');
+    const confirmCancelBtn = document.getElementById('confirmCancel');
+    const dialogError = document.getElementById('dialogError');
+    const deleteBtnText = confirmDeleteBtn.querySelector('.btn-text');
+    const deleteBtnSpinner = confirmDeleteBtn.querySelector('.btn-spinner');
+    let storyIdToDelete = null;
+
+    function showDialog(storyId) {
+        storyIdToDelete = storyId;
+        dialogError.textContent = '';
+        confirmDialog.style.display = 'flex';
+        setTimeout(() => confirmDialog.classList.add('show'), 10);
+    }
+
+    function hideDialog() {
+        confirmDialog.classList.remove('show');
+        setTimeout(() => confirmDialog.style.display = 'none', 300);
+    }
+    
+    // MODIFICATION: Using 'touchstart' for mobile reliability.
+    document.querySelectorAll('.delete-story-btn').forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const storyId = this.dataset.storyId;
+            showDialog(storyId);
+        });
+    });
+
+    confirmCancelBtn.addEventListener('click', hideDialog);
+
+    // MODIFICATION: Completed the deletion logic.
+    confirmDeleteBtn.addEventListener('click', () => {
+        if (!storyIdToDelete) return;
+
+        // Show loading state
+        deleteBtnText.style.display = 'none';
+        deleteBtnSpinner.style.display = 'inline-block';
+        confirmDeleteBtn.disabled = true;
+        confirmCancelBtn.disabled = true;
+        dialogError.textContent = '';
+        
+        const urlTemplate = confirmDialog.dataset.deleteUrlTemplate;
+        const deleteUrl = urlTemplate.replace('0', storyIdToDelete);
+
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id: storyIdToDelete})
+        })
+        .then(response => {
+            if (!response.ok) {
+                 return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                // On successful deletion, go to the home page or previous page
+                window.location.href = "{% url 'home' %}";
+            } else {
+                throw new Error(data.message || 'فشل حذف القصة.');
+            }
+        })
+        .catch(error => {
+            dialogError.textContent = error.message || 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+            // Hide loading state
+            deleteBtnText.style.display = 'inline-block';
+            deleteBtnSpinner.style.display = 'none';
+            confirmDeleteBtn.disabled = false;
+            confirmCancelBtn.disabled = false;
+        });
+    });
+
+    // --- Navigation and Video End Logic ---
+    nextBtn.addEventListener('click', () => {
+        if (currentStoryIndex < totalStories - 1) showStory(currentStoryIndex + 1);
+    });
+    prevBtn.addEventListener('click', () => {
+        if (currentStoryIndex > 0) showStory(currentStoryIndex - 1);
+    });
+    document.querySelectorAll('video.story-media').forEach(video => {
+        video.addEventListener('ended', () => {
+             if (currentStoryIndex < totalStories - 1) {
+                showStory(currentStoryIndex + 1);
+            } else {
+                window.location.href = "{% url 'home' %}";
+            }
+        });
+    });
+
+    // --- Initial Call ---
+    showStory(0);
+});
+</script>
+{% endblock %}

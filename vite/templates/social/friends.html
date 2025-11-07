@@ -1,0 +1,185 @@
+{% extends 'social/base.html' %}
+
+{% block content %}
+<style>
+    .dark-friends {
+        background-color: #121212;
+        color: #e0e0e0;
+        min-height: 100vh;
+        padding-top: 20px;
+    }
+    .dark-card {
+        background-color: #1e1e1e;
+        border-color: #333;
+        margin-bottom: 20px;
+    }
+    .dark-card-header {
+        background-color: #1a1a1a;
+        border-bottom-color: #333;
+        color: #ffffff;
+    }
+    .friend-item {
+        background-color: #252525;
+        border-color: #333;
+        color: #e0e0e0;
+        transition: all 0.3s ease;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+    .friend-item:hover {
+        background-color: #333;
+    }
+    .profile-pic {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border: 2px solid #4a6bff;
+    }
+    .btn-primary {
+        background-color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-outline-danger {
+        color: #ff6b6b;
+        border-color: #ff6b6b;
+    }
+    .btn-outline-danger:hover {
+        background-color: #ff6b6b;
+        color: #fff;
+    }
+    .btn-outline-primary {
+        color: #4a6bff;
+        border-color: #4a6bff;
+    }
+    .btn-outline-primary:hover {
+        background-color: #4a6bff;
+        color: #fff;
+    }
+    .btn-outline-warning {
+        color: #ffc107;
+        border-color: #ffc107;
+    }
+    .btn-outline-warning:hover {
+        background-color: #ffc107;
+        color: #000;
+    }
+    .badge-secondary {
+        background-color: #6c757d;
+    }
+    .empty-message {
+        color: #9e9e9e;
+    }
+</style>
+
+<div class="dark-friends">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- طلبات الصداقة الواردة -->
+                {% if received_requests %}
+                <div class="dark-card card mb-4">
+                    <div class="dark-card-header card-header">
+                        <h5><i class="fas fa-user-plus me-2"></i>طلبات الصداقة</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for user in received_requests %}
+                        <div class="friend-item d-flex align-items-center">
+                            <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}/media/profile_pics/default_profile.png{% endif %}" 
+                                 class="profile-pic rounded-circle me-3" 
+                                 alt="{{ user.username }}"
+                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ user.full_name }}</h6>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </div>
+                            <div>
+                                <a href="{% url 'accept_friend_request' user.username %}" class="btn btn-sm btn-primary me-2">قبول</a>
+                                <a href="{% url 'reject_friend_request' user.username %}" class="btn btn-sm btn-outline-danger">رفض</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- قائمة الأصدقاء -->
+                <div class="dark-card card mb-4">
+                    <div class="dark-card-header card-header">
+                        <h5><i class="fas fa-users me-2"></i>أصدقاؤك ({{ friends.count }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if friends %}
+                            {% for friend in friends %}
+                            <div class="friend-item d-flex align-items-center">
+                                <img src="{% if friend.profile_picture %}{{ friend.profile_picture.url }}{% else %}/media/profile_pics/default_profile.png{% endif %}" 
+                                     class="profile-pic rounded-circle me-3" 
+                                     alt="{{ friend.username }}"
+                                     onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ friend.full_name }}</h6>
+                                    <small class="text-muted">@{{ friend.username }}</small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'profile' friend.username %}" class="btn btn-sm btn-outline-primary">عرض الملف</a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="empty-message"><i class="fas fa-user-friends me-2"></i>ليس لديك أصدقاء حتى الآن.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- الطلبات المرسلة -->
+                {% if sent_requests %}
+                <div class="dark-card card mb-4">
+                    <div class="dark-card-header card-header">
+                        <h5><i class="fas fa-paper-plane me-2"></i>الطلبات المرسلة</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for user in sent_requests %}
+                        <div class="friend-item d-flex align-items-center">
+                            <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}/media/profile_pics/default_profile.png{% endif %}" 
+                                 class="profile-pic rounded-circle me-3" 
+                                 alt="{{ user.username }}"
+                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ user.full_name }}</h6>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </div>
+                            <span class="badge bg-secondary">بانتظار القبول</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- المستخدمون المحظورون -->
+                <div class="dark-card card mb-4">
+                    <div class="dark-card-header card-header">
+                        <h5><i class="fas fa-ban me-2"></i>المستخدمون المحظورون</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for user in request.user.blocked_users.all %}
+                        <div class="friend-item d-flex align-items-center">
+                            <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}/media/profile_pics/default_profile.png{% endif %}" 
+                                 class="profile-pic rounded-circle me-3" 
+                                 alt="{{ user.username }}"
+                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ user.full_name }}</h6>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </div>
+                            <a href="{% url 'unblock_user' user.username %}" class="btn btn-sm btn-outline-warning">إلغاء الحظر</a>
+                        </div>
+                        {% empty %}
+                        <p class="empty-message"><i class="fas fa-check-circle me-2"></i>لم تقم بحظر أي مستخدم.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

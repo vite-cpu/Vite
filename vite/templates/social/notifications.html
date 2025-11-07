@@ -1,0 +1,110 @@
+{% extends 'social/base.html' %}
+{% load static %} {% block content %}
+<style>
+    .dark-notifications {
+        background-color: #121212;
+        color: #e0e0e0;
+        min-height: 100vh;
+    }
+    .dark-card {
+        background-color: #1e1e1e;
+        border-color: #333;
+    }
+    .dark-card-header {
+        background-color: #1a1a1a;
+        border-bottom-color: #333;
+    }
+    .notification-title {
+        color: #ffffff !important; 
+    }
+    .notification-icon {
+        color: #4a6bff !important; 
+    }
+    .notification-item {
+        background-color: #252525;
+        border-color: #333;
+        color: #e0e0e0;
+        transition: all 0.3s ease;
+        text-decoration: none; /* Ensure links look clickable */
+    }
+    .notification-item.unread {
+        background-color: #2d2d2d;
+        border-left: 3px solid #4a6bff;
+    }
+    .notification-item:hover {
+        background-color: #333333e0; /* Slightly different hover */
+        transform: translateX(5px);
+    }
+    .notification-time {
+        color: #9e9e9e;
+    }
+    .empty-notifications {
+        color: #757575;
+    }
+    .profile-img {
+        border: 2px solid #4a6bff;
+        object-fit: cover; /* Ensure image aspect ratio is maintained */
+    }
+</style>
+
+<div class="dark-notifications py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="dark-card card shadow-lg mb-4">
+                    <div class="dark-card-header card-header d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0 notification-title">
+                            <i class="fas fa-bell me-2 notification-icon"></i>الإشعارات
+                        </h3>
+                        {% if unread_count > 0 %} <span class="badge bg-primary rounded-pill px-3 py-2">
+                            {{ unread_count }} جديد
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        {% if notifications %}
+                            <div class="list-group list-group-flush">
+                                {% for notification in notifications %}
+                                    <a href="{% if notification.notification_type == 'message' %}{% url 'chat' notification.sender.username %}
+                                             {% elif notification.notification_type == 'like' %}{% url 'profile' notification.recipient.username %}#post-{{ notification.related_id }}
+                                             {% elif notification.notification_type == 'comment' %}{% url 'profile' notification.recipient.username %}?open_comments_for_post={{ notification.related_id }}#post-{{ notification.related_id }}
+                                             {% elif notification.notification_type == 'friend_request' %}{% url 'profile' notification.sender.username %}
+                                             {% elif notification.notification_type == 'friend_accept' %}{% url 'profile' notification.sender.username %}
+                                             {% elif notification.notification_type == 'reel_like' or notification.notification_type == 'reel_comment' %}{% url 'reel_detail' notification.related_id %}
+                                             {% elif notification.notification_type == 'story_like' %}{% url 'view_stories' username=notification.recipient.username %}
+                                             {% else %}#{% endif %}"
+                                       class="notification-item list-group-item list-group-item-action {% if not notification.is_read %}unread{% endif %}">
+                                        <div class="d-flex align-items-center py-2 px-3">
+                                            <img src="{{ notification.sender.profile_picture.url|default:'/media/profile_pics/default_profile.png' }}" 
+                                                 class="profile-img rounded-circle me-3" width="48" height="48"
+                                                 onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png'">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-1 fw-bold" style="color: #e0e0e0;">{{ notification.content }}</h6>
+                                                    <small class="notification-time">{{ notification.created_at|timesince }} مضت</small>
+                                                </div>
+                                                <small class="d-block text-muted">من: @{{ notification.sender.username }}</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 empty-notifications">
+                                <i class="fas fa-bell-slash fa-4x mb-4"></i>
+                                <h5 class="mb-3">لا توجد إشعارات</h5>
+                                <p class="mb-0">سيظهر هنا أي إشعارات جديدة تتلقاها</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer dark-card-header text-end">
+                        <small class="text-muted">آخر تحديث: {% now "H:i" %}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

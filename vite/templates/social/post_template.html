@@ -1,0 +1,617 @@
+{% load static %}
+
+{# --- CHANGE: Replaced bg-dark and border-dark with a custom 'post-card' class for styling --- #}
+<div class="card post-card mb-4 text-light" id="post-{{ post.id }}">
+    <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+            <div style="position: relative; flex-shrink: 0;" class="me-2">
+                <a href="{% url 'profile' post.user.username %}">
+                    <img src="{{ post.user.profile_picture.url }}" class="rounded-circle" alt="User avatar"
+                        onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';"
+                        style="width: 50px; height: 50px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                </a>
+                {% if post.user.is_online %}
+                    <span class="online-indicator-dot" title="نشط الآن"></span>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{% url 'profile' post.user.username %}" class="text-decoration-none text-light">
+                    <h5 class="mb-0">@{{ post.user.username }}
+                        {% if post.user.has_blue_badge %}
+                            <i class="fas fa-check-circle text-primary" style="font-size: 0.8em;" title="حساب موثوق"></i>
+                        {% endif %}
+                    </h5>
+                </a>
+                <small class="text-muted">{{ post.created_at|timesince }} مضت</small>
+            </div>
+            {% if post.user == request.user %}
+            <div class="dropdown ms-auto">
+                <button class="btn btn-sm btn-glass" type="button" id="postOptionsDropdown-{{ post.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="postOptionsDropdown-{{ post.id }}">
+                    <li><a class="dropdown-item" href="{% url 'edit_post' post.id %}"><i class="fas fa-edit me-2"></i>تعديل</a></li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'delete_post' post.id %}"><i class="fas fa-trash-alt me-2"></i>حذف</a></li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="card-text mb-3">{{ post.content }}</p>
+        
+        {% if post.image %}
+        <div class="post-media-container">
+            <img src="{{ post.image.url }}" class="img-fluid rounded post-image clickable-image" alt="Post image" loading="lazy"
+                 data-bs-toggle="modal" data-bs-target="#imageModal-{{ post.id }}">
+        </div>
+        {% endif %}
+
+        {% if post.video %}
+        <div class="post-media-container">
+            <div class="ratio ratio-16x9 video-container">
+                <video controls playsinline preload="metadata" class="lazy-video" data-src="{{ post.video.url }}">
+                    <source src="{{ post.video.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+        {% endif %}
+        
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <a href="#" class="text-decoration-none text-light" data-bs-toggle="modal" data-bs-target="#likesModal-{{ post.id }}">
+                    <span class="likes-count-{{ post.id }}">{{ post.likes.count }}</span> اعجابات
+                </a>
+            </div>
+            <div>
+                <a href="#" class="text-decoration-none text-light" data-bs-toggle="modal" data-bs-target="#commentsModal-{{ post.id }}">
+                    {{ post.comments.count }} تعليقات
+                </a>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="post-actions d-flex justify-content-around">
+            <a href="#" class="like-btn text-light" data-post-id="{{ post.id }}">
+                <i class="like-icon-{{ post.id }} {% if post.is_liked %}fas fa-heart text-danger{% else %}far fa-heart text-white-80{% endif %} fa-lg"></i>
+            </a>
+            <a href="#" class="text-light" data-bs-toggle="modal" data-bs-target="#commentsModal-{{ post.id }}">
+                <i class="far fa-comment text-white-80 fa-lg"></i>
+            </a>
+            <a href="#" class="copy-link-btn text-light" data-post-url="{{ request.scheme }}://{{ request.get_host }}{% url 'profile' post.user.username %}#post-{{ post.id }}" title="نسخ رابط المنشور">
+                <i class="fas fa-link text-white-80 fa-lg"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+{# --- CHANGE: Added 'post-modal' class for styling --- #}
+<div class="modal fade post-modal" id="commentsModal-{{ post.id }}" tabindex="-1" aria-labelledby="commentsModalLabel-{{ post.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="commentsModalLabel-{{ post.id }}">التعليقات</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="comments-container" style="max-height: 400px; overflow-y: auto;">
+                    {% for comment in post.comments.all %}
+                    <div class="d-flex mb-3">
+                        <a href="{% url 'profile' comment.user.username %}">
+                            <img src="{{ comment.user.profile_picture.url }}" class="rounded-circle me-2"
+                                style="width: 40px; height: 40px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);"
+                                onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';"
+                                alt="{{ comment.user.username }}">
+                        </a>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center">
+                                <a href="{% url 'profile' comment.user.username %}" class="text-decoration-none text-light me-2">
+                                    <strong>@{{ comment.user.username }}</strong>
+                                </a>
+                                <small class="text-muted">{{ comment.created_at|timesince }} مضت</small>
+                                {% if comment.user == request.user or post.user == request.user %}
+                                <div class="dropdown ms-auto">
+                                    <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item text-danger delete-comment-btn" href="#" data-comment-id="{{ comment.id }}">حذف التعليق</a></li>
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <p class="mb-0 text-light">{{ comment.content }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">لا توجد تعليقات حتى الآن</p>
+                    {% endfor %}
+                </div>
+                <form id="comment-form-{{ post.id }}" class="comment-form mt-3" action="{% url 'add_comment' post.id %}" method="POST">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="content" placeholder="أكتب تعليقا...">
+                        <button class="btn btn-outline-primary" type="submit">نشر</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade post-modal" id="imageModal-{{ post.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="{{ post.image.url }}" class="img-fluid" style="max-height: 80vh; width: auto;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade post-modal" id="likesModal-{{ post.id }}" tabindex="-1" aria-labelledby="likesModalLabel-{{ post.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="likesModalLabel-{{ post.id }}">المعجبون</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                {% if post.likes.all %}
+                    <ul class="list-group">
+                        {% for like in post.likes.all %}
+                            {% if like.user.username %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <a href="{% url 'profile' like.user.username %}">
+                                        <img src="{{ like.user.profile_picture.url }}" class="rounded-circle me-2"
+                                             style="width: 40px; height: 40px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);"
+                                             onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';"
+                                             alt="{{ like.user.username }}">
+                                    </a>
+                                    <a href="{% url 'profile' like.user.username %}" class="text-decoration-none text-light">
+                                        @{{ like.user.username }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center">لا يوجد معجبون حتى الآن</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* --- Glassmorphism Styles for Posts and Modals --- */
+    .post-card,
+    .post-modal .modal-content,
+    .post-card .dropdown-menu {
+        background: rgba(28, 28, 30, 0.7) !important;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border-radius: 12px;
+        color: #e0e0e0 !important;
+    }
+    .post-card .dropdown-item {
+        color: #e0e0e0;
+    }
+     .post-card .dropdown-item:hover, .post-card .dropdown-item:focus {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+     .post-card .dropdown-item.text-danger:hover {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #ff8a8a;
+     }
+
+    /* Style for modal backdrop */
+    .modal-backdrop.show {
+        opacity: 0.6;
+    }
+
+    /* Remove default bootstrap coloring */
+    .card.post-card {
+        background-color: transparent !important;
+    }
+
+    /* Glassy Buttons */
+    .btn-glass {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+    }
+    .btn-glass:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #fff;
+    }
+
+    /* Form inputs in modals */
+    .post-modal .form-control {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+    }
+    .post-modal .form-control::placeholder { color: #a0a0a0; }
+    .post-modal .form-control:focus { box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25); }
+
+
+    /* List items in likes modal */
+    .post-modal .list-group-item {
+        background-color: transparent !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Ensure borders inside the card/modal are consistent */
+    .post-card hr, .post-modal .modal-header, .post-modal .modal-footer {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .post-media-container {
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background-color: #121212;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .post-image {
+        max-height: 500px;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+    .post-image:hover { transform: scale(1.02); }
+    .clickable-image { cursor: zoom-in; }
+
+    .video-container { width: 100%; background-color: #000; }
+    .video-container video { width: 100%; height: auto; max-height: 500px; }
+
+    #imageModal-{{ post.id }} .modal-content { background-color: rgba(0, 0, 0, 0.9); }
+    #imageModal-{{ post.id }} .btn-close { position: absolute; top: 15px; right: 15px; z-index: 10; filter: invert(1); }
+    
+    .text-white-80 { color: rgba(255, 255, 255, 0.8) !important; }
+    .post-actions a:hover i { transform: scale(1.15); opacity: 1; }
+    .post-actions i { transition: all 0.2s ease-in-out; opacity: 0.9; }
+
+    .online-indicator-dot {
+        position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px;
+        background-color: #22c55e; border-radius: 50%;
+        border: 2px solid #2e2e30; /* Solid approximation of the glassy bg */
+        box-shadow: 0 0 5px #22c55e; z-index: 10;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    function showCustomToast(message, type = 'info', duration = 3000) {
+        const toastId = 'custom-copy-action-toast';
+        const existingToast = document.getElementById(toastId);
+        if (existingToast) {
+            existingToast.remove();
+        }
+        const toastElement = document.createElement('div');
+        toastElement.id = toastId;
+        toastElement.textContent = message;
+        let backgroundColor = '#17a2b8';
+        if (type === 'success') backgroundColor = '#28a745';
+        else if (type === 'error') backgroundColor = '#dc3545';
+        toastElement.style.position = 'fixed';
+        toastElement.style.bottom = '20px';
+        toastElement.style.right = '20px';
+        toastElement.style.backgroundColor = backgroundColor;
+        toastElement.style.color = 'white';
+        toastElement.style.padding = '15px 20px';
+        toastElement.style.borderRadius = '8px';
+        toastElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        toastElement.style.zIndex = '1055';
+        toastElement.style.opacity = '0';
+        toastElement.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
+        toastElement.style.transform = 'translateY(20px)';
+        document.body.appendChild(toastElement);
+        void toastElement.offsetWidth;
+        toastElement.style.opacity = '1';
+        toastElement.style.transform = 'translateY(0)';
+        setTimeout(() => {
+            toastElement.style.opacity = '0';
+            toastElement.style.transform = 'translateY(20px)';
+            toastElement.addEventListener('transitionend', () => {
+                if (toastElement.parentNode) {
+                    toastElement.parentNode.removeChild(toastElement);
+                }
+            }, { once: true });
+        }, duration);
+    }
+
+    function linkifyContent(plainText) {
+        const segments = [];
+        const combinedRegex = /(\b(?:https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(?<!\w)@([a-zA-Z0-9_]{1,50})(?!\w)/ig;
+        const escapeDiv = document.createElement('div');
+        let lastIndex = 0;
+        let match;
+
+        while ((match = combinedRegex.exec(plainText)) !== null) {
+            const url = match[1];
+            const mentionUsername = match[2];
+            const startIndex = match.index;
+
+            if (startIndex > lastIndex) {
+                escapeDiv.textContent = plainText.substring(lastIndex, startIndex);
+                segments.push(escapeDiv.innerHTML);
+            }
+
+            if (url) {
+                escapeDiv.textContent = url;
+                segments.push(`<a href="${encodeURI(url)}" target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-break">${escapeDiv.innerHTML}</a>`);
+            } else if (mentionUsername) {
+                escapeDiv.textContent = `@${mentionUsername}`;
+                segments.push(`<a href="/profile/${encodeURIComponent(mentionUsername)}/" class="text-decoration-underline">${escapeDiv.innerHTML}</a>`);
+            }
+            lastIndex = combinedRegex.lastIndex;
+        }
+
+        if (lastIndex < plainText.length) {
+            escapeDiv.textContent = plainText.substring(lastIndex);
+            segments.push(escapeDiv.innerHTML);
+        }
+        return segments.join('');
+    }
+
+    function processAllLinkifiableContent() {
+        document.querySelectorAll('div.card-body > p.card-text.mb-3').forEach(contentElement => {
+            if (!contentElement.hasAttribute('data-linkified')) {
+                const originalText = contentElement.textContent;
+                contentElement.innerHTML = linkifyContent(originalText);
+                contentElement.setAttribute('data-linkified', 'true');
+            }
+        });
+
+        document.querySelectorAll('.comments-container .flex-grow-1 > p.mb-0.text-light').forEach(commentElement => {
+            if (!commentElement.hasAttribute('data-linkified')) {
+                const originalText = commentElement.textContent;
+                commentElement.innerHTML = linkifyContent(originalText);
+                commentElement.setAttribute('data-linkified', 'true');
+            }
+        });
+    }
+
+    processAllLinkifiableContent();
+
+
+    if (!document.body.hasAttribute('data-comment-submit-handler-applied')) {
+        document.body.addEventListener('submit', handleCommentSubmit);
+        document.body.setAttribute('data-comment-submit-handler-applied', 'true');
+    }
+
+    const lazyVideos = document.querySelectorAll('.lazy-video');
+    lazyVideos.forEach(video => {
+        if (video.dataset.src && !video.src) {
+            video.src = video.dataset.src;
+        }
+    });
+
+    document.querySelectorAll('.clickable-image').forEach(img => {
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+    document.querySelectorAll('.copy-link-btn').forEach(btn => {
+        if (btn.hasAttribute('data-copy-listener-attached')) return;
+        btn.setAttribute('data-copy-listener-attached', 'true');
+
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const postUrl = this.dataset.postUrl;
+            navigator.clipboard.writeText(postUrl).then(() => {
+                showCustomToast('تم نسخ الرابط بنجاح! جاهز للمشاركة 🎉', 'success');
+            }).catch(err => {
+                console.error('Failed to copy link: ', err);
+                showCustomToast('فشل نسخ الرابط. حاول مرة أخرى!', 'error');
+            });
+        });
+    });
+
+    if (!document.body.hasAttribute('data-url-handler-applied')) {
+        document.body.setAttribute('data-url-handler-applied', 'true');
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        const openCommentsForPostId = currentUrlParams.get('open_comments_for_post');
+        const currentHash = window.location.hash;
+        let targetPostId = null;
+        if (openCommentsForPostId) {
+            targetPostId = openCommentsForPostId;
+        } else if (currentHash && currentHash.startsWith('#post-')) {
+            targetPostId = currentHash.substring(1).split('-')[1];
+        }
+        if (targetPostId) {
+            const postElementToScroll = document.getElementById(`post-${targetPostId}`);
+            if (postElementToScroll) {
+                setTimeout(() => {
+                    postElementToScroll.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+            if (openCommentsForPostId && openCommentsForPostId === targetPostId) {
+                const commentsModalElement = document.getElementById(`commentsModal-${openCommentsForPostId}`);
+                if (commentsModalElement) {
+                    if (typeof bootstrap !== 'undefined' && typeof bootstrap.Modal !== 'undefined') {
+                        setTimeout(() => {
+                            var modalInstance = new bootstrap.Modal(commentsModalElement);
+                            modalInstance.show();
+                        }, 400);
+                    } else {
+                        console.warn('Bootstrap Modal JS not found, cannot open comments modal programmatically.');
+                    }
+                }
+            }
+        }
+    }
+});
+
+function handleCommentSubmit(e) {
+    if (e.target.classList.contains('comment-form')) {
+        e.preventDefault();
+        const form = e.target;
+        if (form.dataset.processing === 'true') return;
+        form.dataset.processing = 'true';
+        const postId = form.id.split('-')[2];
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإرسال...';
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            form.dataset.processing = 'false';
+            if (data.success) {
+                const commentsContainer = form.closest('.modal-body').querySelector('.comments-container');
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'd-flex mb-3';
+
+                const linkedContent = linkifyContent(data.content);
+
+                commentDiv.innerHTML = `
+                    <a href="/profile/${data.username}/">
+                        <img src="${data.profile_picture}" class="rounded-circle me-2 border border-secondary"
+                            style="width: 40px; height: 40px; object-fit: cover;"
+                            onerror="this.onerror=null; this.src='/media/profile_pics/default_profile.png';"
+                            alt="${data.username}">
+                    </a>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center">
+                            <a href="/profile/${data.username}/" class="text-decoration-none text-light me-2">
+                                <strong>@${data.username}</strong>
+                            </a>
+                            <small class="text-muted">الآن</small>
+                            </div>
+                        <p class="mb-0 text-light comment-content-text" data-linkified="true">${linkedContent}</p>
+                    </div>
+                `;
+                if (commentsContainer.firstChild) {
+                    commentsContainer.insertBefore(commentDiv, commentsContainer.firstChild);
+                } else {
+                    commentsContainer.appendChild(commentDiv);
+                }
+                const commentsCountElement = document.querySelector(`[data-bs-target="#commentsModal-${postId}"]`);
+                if (commentsCountElement) {
+                    const currentCount = parseInt(commentsCountElement.textContent.trim().split(' ')[0]);
+                    commentsCountElement.textContent = `${currentCount + 1} تعليقات`;
+                }
+                form.querySelector('input[name="content"]').value = '';
+                const noCommentsMsg = commentsContainer.querySelector('.text-muted.text-center');
+                if (noCommentsMsg) {
+                    noCommentsMsg.remove();
+                }
+            } else {
+                 if (typeof showCustomToast === 'function' && data.error) {
+                    showCustomToast(data.error, 'error');
+                } else if (typeof showToast === 'function' && data.error) {
+                    showToast(data.error, 'error');
+                } else if (data.error) {
+                    alert(data.error);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            form.dataset.processing = 'false';
+            if (typeof showCustomToast === 'function') {
+                showCustomToast('حدث خطأ أثناء إرسال التعليق، يرجى المحاولة مرة أخرى', 'error');
+            } else {
+                alert('حدث خطأ أثناء إرسال التعليق، يرجى المحاولة مرة أخرى');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+        if (btn.hasAttribute('data-delete-comment-listener-attached')) return;
+        btn.setAttribute('data-delete-comment-listener-attached', 'true');
+
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const commentId = this.dataset.commentId;
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]');
+
+            if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
+                fetch(`/comment/${commentId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken ? csrfToken.value : '{{ csrf_token }}',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const commentElement = this.closest('.d-flex.mb-3');
+                        if (commentElement) {
+                             commentElement.remove();
+                        }
+                        const modalElement = this.closest('.modal');
+                        if (modalElement) {
+                            const postId = modalElement.id.split('-')[1];
+                             const commentsCountElement = document.querySelector(`[data-bs-target="#commentsModal-${postId}"]`);
+                            if (commentsCountElement) {
+                                const currentCountText = commentsCountElement.textContent.trim().split(' ')[0];
+                                const currentCount = parseInt(currentCountText);
+                                if (!isNaN(currentCount)) {
+                                   commentsCountElement.textContent = `${Math.max(0, currentCount - 1)} تعليقات`;
+                                }
+                            }
+                        }
+                        if (typeof showCustomToast === 'function') {
+                            showCustomToast('تم حذف التعليق بنجاح', 'success');
+                        } else {
+                            alert('تم حذف التعليق بنجاح');
+                        }
+                    } else {
+                        if (typeof showCustomToast === 'function' && data.error) {
+                            showCustomToast(data.error, 'error');
+                        } else if (data.error) {
+                            alert(data.error);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                     if (typeof showCustomToast === 'function') {
+                        showCustomToast('حدث خطأ أثناء حذف التعليق', 'error');
+                    } else {
+                        alert('حدث خطأ أثناء حذف التعليق');
+                    }
+                });
+            }
+        });
+    });
+});
+</script>

@@ -1,0 +1,312 @@
+{% extends 'social/base.html' %}
+{% load static %}
+<style>
+  /* أنماط زر الماسح */
+  #qrScannerBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  /* أنماط واجهة الماسح */
+  #scannerContainer {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #scanFrame {
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.7); /* يبقى كما هو للتعتيم */
+  }
+
+  #switchCamera {
+    display: none; /* سيتم إظهاره فقط إذا كانت هناك أكثر من كاميرا */
+  }
+
+  @media (max-width: 768px) {
+    #qrScannerBtn span {
+      display: none;
+    }
+  }
+
+  /* --- Dark Theme Styles for qr_code.html --- */
+  /* هذه الأنماط ستُطبق فقط على هذه الصفحة بسبب كلاس .dark-mode المضاف عبر JS */
+  body.dark-mode {
+    background-color: #1a1a1a !important; /* خلفية داكنة رئيسية لهذه الصفحة، !important لضمان التجاوز إذا لزم الأمر */
+    color: #e0e0e0 !important; /* لون النص الأساسي الفاتح لهذه الصفحة */
+  }
+
+  .dark-mode .card {
+    background-color: #2c2c2c; /* خلفية البطاقة أغمق قليلاً */
+    border: 1px solid #444;
+    color: #e0e0e0;
+  }
+
+  .dark-mode .card-header {
+    background-color: #383838; /* خلفية رأس البطاقة */
+    color: #ffffff;
+    border-bottom: 1px solid #444;
+  }
+
+  .dark-mode .text-muted {
+    color: #a0a0a0 !important; /* لون النص الثانوي أفتح قليلاً */
+  }
+
+  .dark-mode .text-danger {
+    color: #ff8a80 !important; /* لون نص الخطر ليكون واضحاً */
+  }
+
+  /* تخصيص ألوان الأزرار في الوضع الداكن لهذه الصفحة */
+  .dark-mode .btn-outline-primary {
+    color: #79bbff;
+    border-color: #79bbff;
+  }
+
+  .dark-mode .btn-outline-primary:hover {
+    background-color: #79bbff;
+    color: #1a1a1a;
+  }
+
+  .dark-mode .btn-primary {
+    background-color: #005c99;
+    border-color: #005c99;
+    color: #ffffff;
+  }
+
+  .dark-mode .btn-primary:hover {
+    background-color: #004c80;
+    border-color: #004c80;
+  }
+
+  .dark-mode .btn-info {
+    background-color: #007791;
+    border-color: #007791;
+    color: #ffffff;
+  }
+
+  .dark-mode .btn-info:hover {
+    background-color: #005f73;
+    border-color: #005f73;
+  }
+
+  /* أزرار الماسح داخل الواجهة المنبثقة */
+  /* يتم تطبيق الألوان مباشرة أو عبر أنماط أكثر تحديدًا في JS، لكن يمكن وضع قيم افتراضية هنا للوضع الداكن للماسح */
+   body.dark-mode #scannerContainer #closeScanner.btn-danger { /* أكثر تحديدًا */
+      background-color: #c62828;
+      border-color: #c62828;
+      color: white;
+  }
+   body.dark-mode #scannerContainer #closeScanner.btn-danger:hover {
+      background-color: #b02424;
+      border-color: #b02424;
+  }
+
+  body.dark-mode #scannerContainer #switchCamera.btn-secondary { /* أكثر تحديدًا */
+      background-color: #4f4f4f;
+      border-color: #4f4f4f;
+      color: white;
+  }
+  body.dark-mode #scannerContainer #switchCamera.btn-secondary:hover {
+      background-color: #3e3e3e;
+      border-color: #3e3e3e;
+  }
+
+  #scannerContainer p {
+      color: #f0f0f0; /* تأكيد أن النص فاتح في واجهة الماسح */
+  }
+  .h3 {
+    color: #ffff;
+  }
+
+</style>
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card"> <div class="card-header"> <h3 style="color: #ffffff;">كود QR الخاص بي</h3> <!-- إضافة نمط مباشر هنا -->
+
+                </div>
+                <div class="card-body">
+                    {% if profile_user.qr_code %}
+                        <img src="{{ profile_user.qr_code }}" class="img-fluid mb-3" alt="QR Code">
+                        <p class="text-muted">مسح هذا الكود للوصول إلى بروفايلي</p> {% else %}
+                        <p class="text-danger">لا يوجد كود QR متوفر</p> {% endif %}
+
+                    <div class="d-flex justify-content-center gap-2 mt-3">
+                        <a href="{% url 'profile' profile_user.username %}" class="btn btn-outline-primary"> العودة إلى البروفايل
+                        </a>
+                        <button onclick="window.print()" class="btn btn-primary"> <i class="fas fa-print"></i> طباعة الكود
+                        </button>
+                        <button type="button" class="btn btn-info ms-2 btn-animate" id="qrScannerBtn"> <i class="fas fa-qrcode"></i> ماسح الكود
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة كلاس الوضع الداكن إلى body لهذه الصفحة تحديدًا
+    document.body.classList.add('dark-mode');
+
+    const qrScannerBtn = document.getElementById('qrScannerBtn');
+    // محاولة العثور على حقل البحث. قد يكون في base.html
+    const searchInput = document.querySelector('.search-bar');
+
+
+    qrScannerBtn.addEventListener('click', function() {
+        const scannerUI = `
+            <div id="scannerContainer" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div style="position:relative;width:80%;max-width:400px;">
+                    <video id="qrScanner" style="width:100%;border-radius:10px;"></video>
+                    <div id="scanFrame" style="position:absolute;top:0;left:0;width:100%;height:100%;border:2px solid rgba(0,255,0,0.7);border-radius:10px;pointer-events:none;"></div>
+                    <div id="scanLine" style="position:absolute;top:20%;width:100%;height:3px;background:#00ff00;box-shadow:0 0 10px #00ff00;animation:scanAnimation 2s infinite linear;"></div>
+                </div>
+                <p style="color:white;margin-top:20px;font-size:1.1rem;">ضع كود QR داخل الإطار</p>
+                <button id="closeScanner" class="btn btn-danger mt-3">إغلاق الماسح</button>
+                <button id="switchCamera" class="btn btn-secondary mt-2">تبديل الكاميرا</button>
+                <style> /* أنماط خاصة بالماسح، قد تحتاج لتعديل لتناسب الوضع الداكن بشكل أفضل إذا لم تكن الأنماط العامة كافية */
+                    @keyframes scanAnimation {
+                        0% { top: 20%; }
+                        100% { top: 80%; }
+                    }
+                    /* التأكد من أن أزرار الماسح تستخدم الألوان المخصصة للوضع الداكن إذا كان body.dark-mode نشطًا */
+                    /* الأنماط العامة في الأعلى يجب أن تغطي هذا، لكن يمكن إضافة !important إذا لزم الأمر هنا */
+                </style>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', scannerUI);
+
+        const videoElement = document.getElementById('qrScanner');
+        const closeBtn = document.getElementById('closeScanner');
+        const switchBtn = document.getElementById('switchCamera');
+        let currentCameraIndex = 0;
+        let cameras = [];
+        let scanner = new Instascan.Scanner({ video: videoElement, mirror: false, backgroundScan: false }); // mirror: false للخلفية
+
+        function findRearCameraIndex(cameras) {
+            const rearTerms = ['back', 'rear', 'environment', 'خلفية', 'خلفي', '1']; // إضافة مصطلحات عربية محتملة
+            for (let i = 0; i < cameras.length; i++) {
+                if (cameras[i].name) { // التأكد أن الاسم موجود
+                    const cameraName = cameras[i].name.toLowerCase();
+                    if (rearTerms.some(term => cameraName.includes(term))) {
+                        return i;
+                    }
+                }
+            }
+            // إذا لم يتم العثور على كاميرا خلفية بالاسم، ولكن هناك كاميرات متعددة، نفترض أن الثانية قد تكون الخلفية
+            if (cameras.length > 1) return 1;
+            return 0; // الكاميرا الأولى كافتراضي
+        }
+
+        function startCamera(index) {
+            if (cameras.length > 0 && cameras[index]) { // التأكد أن الكاميرا موجودة في الفهرس
+                scanner.stop(); // إيقاف الماسح قبل البدء بكاميرا جديدة
+                scanner.start(cameras[index]).then(() => {
+                    currentCameraIndex = index;
+                    // عكس الفيديو إذا كانت الكاميرا الأمامية هي المستخدمة (عادة الكاميرا الأولى)
+                    videoElement.style.transform = (cameras[index].name && cameras[index].name.toLowerCase().includes('front')) ? "scaleX(-1)" : "scaleX(1)";
+
+                }).catch(e => {
+                    console.error("Error starting camera:", e);
+                    // alert("لم يمكن بدء الكاميرا المحددة. قد تكون مستخدمة أو غير متاحة.");
+                    // محاولة البدء بالكاميرا التالية إذا فشلت الحالية
+                    if (cameras.length > 1) {
+                        currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+                        startCamera(currentCameraIndex);
+                    } else {
+                        alert('لا يمكن بدء تشغيل الكاميرا.');
+                        closeScanner();
+                    }
+                });
+            } else if (cameras.length > 0) { // إذا كان الفهرس غير صالح، ابدأ بالكاميرا الأولى
+                 scanner.stop();
+                 scanner.start(cameras[0]).then(() => { currentCameraIndex = 0; }).catch(e => {
+                    console.error("Error starting default camera:", e);
+                    alert('لا يمكن بدء تشغيل الكاميرا الافتراضية.');
+                    closeScanner();
+                 });
+            }
+        }
+
+        Instascan.Camera.getCameras()
+            .then(availableCameras => {
+                cameras = availableCameras;
+                if (cameras.length > 0) {
+                    const rearCameraIndex = findRearCameraIndex(cameras);
+                    startCamera(rearCameraIndex);
+                    if (cameras.length > 1) {
+                        switchBtn.style.display = 'block';
+                    }
+                } else {
+                    alert('لم يتم العثور على كاميرا!');
+                    closeScanner();
+                }
+            })
+            .catch(err => {
+                console.error('خطأ في الوصول للكاميرات:', err);
+                alert('لا يمكن الوصول إلى الكاميرات. تأكد من منح الإذن.');
+                closeScanner();
+            });
+
+        scanner.addListener('scan', content => {
+            let username = content;
+            try {
+                // محاولة تحليل المحتوى كرابط واستخراج اسم المستخدم
+                // يفترض أن اسم المستخدم هو آخر جزء في المسار، أو المحتوى كله إذا لم يكن رابطاً
+                const url = new URL(content);
+                const pathParts = url.pathname.split('/').filter(Boolean);
+                if (pathParts.length > 0) {
+                    username = pathParts[pathParts.length - 1];
+                }
+            } catch (e) {
+                // إذا لم يكن رابطًا صالحًا، افترض أن المحتوى هو اسم المستخدم مباشرة
+                // يمكنك إضافة منطق أكثر تعقيدًا هنا إذا كانت صيغ QR متنوعة
+                username = content.trim(); // إزالة أي مسافات زائدة
+            }
+
+            if (searchInput) {
+                searchInput.value = username;
+                const searchForm = searchInput.closest('form'); // العثور على أقرب نموذج للحقل
+                 if (searchForm && typeof searchForm.submit === 'function') {
+                    searchForm.submit();
+                 } else {
+                    console.warn('Search form not found or not submittable for:', searchInput);
+                    // كحل بديل، يمكنك محاولة إرسال النموذج المتوقع إذا كنت تعرفه
+                    // const specificSearchForm = document.querySelector('form[action="{% url 'search_users' %}"]');
+                    // if (specificSearchForm) specificSearchForm.submit();
+                 }
+            } else {
+                console.warn('Search input field with class "search-bar" not found.');
+                // إذا لم يتم العثور على حقل البحث، يمكنك توجيه المستخدم مباشرة
+                // window.location.href = `/profile/${username}/`; // على سبيل المثال
+            }
+            closeScanner();
+        });
+
+        switchBtn.addEventListener('click', () => {
+            if (cameras.length > 0) {
+              currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+              startCamera(currentCameraIndex);
+            }
+        });
+
+        function closeScanner() {
+            if (scanner) {
+              try {
+                scanner.stop();
+              } catch (e) {
+                console.warn("Error stopping scanner, possibly already stopped:", e);
+              }
+            }
+            const container = document.getElementById('scannerContainer');
+            if (container) container.remove();
+        }
+
+        closeBtn.addEventListener('click', closeScanner);
+    });
+});
+</script>
+{% endblock %}
